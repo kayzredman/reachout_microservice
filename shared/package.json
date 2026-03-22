@@ -1,7 +1,13 @@
 {
   "name": "@faithreach/shared",
   "version": "0.1.0",
-  "main": "index.ts",
-  "types": "index.ts",
-  "license": "MIT"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
