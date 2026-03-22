@@ -4,6 +4,7 @@
 
 FaithReach is a multi-platform content distribution & growth SaaS for writers and pastors. This monorepo uses a microservices architecture to enable scalable, maintainable, and independent service development.
 
+
 ## Tech Stack
 
 - **Monorepo Management:** pnpm, TurboRepo
@@ -12,7 +13,7 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - **Package Management:** pnpm workspaces
 - **Inter-service Communication:** REST (future: message queue/Redis)
 - **Database:** (to be defined per service, e.g., PostgreSQL, MongoDB)
-- **Auth:** Clerk (planned)
+- **Auth:** Clerk (in-app sign-in/sign-up, fully branded)
 - **CI/CD:** (to be configured)
 - **Deployment:** (to be configured)
 
@@ -30,6 +31,7 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - `frontend` — Next.js app for user interface and dashboard
 - `shared` — Common types, interfaces, and utilities
 
+
 ## Development
 
 - Install dependencies: `pnpm install`
@@ -37,11 +39,28 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - Build all packages: `pnpm build`
 - Lint all packages: `pnpm lint`
 
+### Auth Flow
+
+- Landing page has split-panel with SIGN IN and SIGN UP buttons
+- SIGN IN and SIGN UP route to in-app Clerk auth pages with consistent background and branding
+- Clerk sign-in/sign-up forms are fully integrated (not external redirects)
+
+### Backend & Testing
+
+- Post service uses port 3002 (not 3000)
+- TypeScript types and formatting improved in post controller
+- e2e tests for posts improved for type safety and clarity
+
+### Linting
+
+- ESLint config added for post service
+
 ## Contribution
 
 - Each service is developed independently in its own folder under `services/`
 - Use pnpm workspaces for dependency management
 - Use TurboRepo for running scripts across the monorepo
+
 
 ## Repository
 
