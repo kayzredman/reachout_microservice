@@ -4,7 +4,6 @@
 
 FaithReach is a multi-platform content distribution & growth SaaS for writers and pastors. This monorepo uses a microservices architecture to enable scalable, maintainable, and independent service development.
 
-
 ## Tech Stack
 
 - **Monorepo Management:** pnpm, TurboRepo
@@ -30,7 +29,6 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - `services/notification` — Email and push notifications
 - `frontend` — Next.js app for user interface and dashboard
 - `shared` — Common types, interfaces, and utilities
-
 
 ## Development
 
@@ -60,7 +58,6 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - Each service is developed independently in its own folder under `services/`
 - Use pnpm workspaces for dependency management
 - Use TurboRepo for running scripts across the monorepo
-
 
 ## Repository
 

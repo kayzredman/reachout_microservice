@@ -27,6 +27,7 @@ describe('PostController (e2e)', () => {
       content: 'Hello world',
       status: 'draft',
     };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const res = await request(app.getHttpServer())
       .post('/posts')
       .send(postData)
@@ -38,6 +39,7 @@ describe('PostController (e2e)', () => {
   });
 
   it('/posts (GET) returns all posts', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const res = await request(app.getHttpServer()).get('/posts').expect(200);
     const body = res.body as Post[];
     expect(Array.isArray(body)).toBe(true);
@@ -45,6 +47,7 @@ describe('PostController (e2e)', () => {
   });
 
   it('/posts/:id (GET) returns a post', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const res = await request(app.getHttpServer())
       .get(`/posts/${createdPost.id}`)
       .expect(200);
@@ -53,6 +56,7 @@ describe('PostController (e2e)', () => {
   });
 
   it('/posts/:id (PUT) updates a post', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const res = await request(app.getHttpServer())
       .put(`/posts/${createdPost.id}`)
       .send({ content: 'Updated content', status: 'published' })
@@ -63,10 +67,12 @@ describe('PostController (e2e)', () => {
   });
 
   it('/posts/:id (DELETE) removes a post', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await request(app.getHttpServer())
       .delete(`/posts/${createdPost.id}`)
       .expect(200);
     // Should not find the post anymore
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await request(app.getHttpServer())
       .get(`/posts/${createdPost.id}`)
       .expect(404);
