@@ -1,9 +1,11 @@
 # FaithReach Microservices Monorepo
 
 ## Overview
+
 FaithReach is a multi-platform content distribution & growth SaaS for writers and pastors. This monorepo uses a microservices architecture to enable scalable, maintainable, and independent service development.
 
 ## Tech Stack
+
 - **Monorepo Management:** pnpm, TurboRepo
 - **Frontend:** Next.js (TypeScript, App Router, ESLint)
 - **Backend Services:** Node.js, NestJS (TypeScript)
@@ -15,6 +17,7 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - **Deployment:** (to be configured)
 
 ## Services
+
 - `services/auth` — User authentication, registration, and subscription
 - `services/platform-integration` — Social platform connections and publishing
 - `services/post` — Post creation, editing, scheduling, drafts
@@ -28,17 +31,20 @@ FaithReach is a multi-platform content distribution & growth SaaS for writers an
 - `shared` — Common types, interfaces, and utilities
 
 ## Development
+
 - Install dependencies: `pnpm install`
 - Run all services and frontend in dev mode: `pnpm dev`
 - Build all packages: `pnpm build`
 - Lint all packages: `pnpm lint`
 
 ## Contribution
+
 - Each service is developed independently in its own folder under `services/`
 - Use pnpm workspaces for dependency management
 - Use TurboRepo for running scripts across the monorepo
 
 ## Repository
+
 - GitHub: https://github.com/kayzredman/reachout_microservice
 
 ---

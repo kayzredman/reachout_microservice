@@ -1,4 +1,4 @@
 packages:
-  - 'services/*'
-  - 'frontend'
-  - 'shared'
+  - "services/*"
+  - "frontend"
+  - "shared"
