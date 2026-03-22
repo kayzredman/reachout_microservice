@@ -31,24 +31,25 @@ describe('PostController (e2e)', () => {
       .post('/posts')
       .send(postData)
       .expect(201);
-    expect(res.body).toMatchObject(postData);
-    expect(res.body.id).toBeDefined();
-    createdPost = res.body;
+    const body = res.body as Post;
+    expect(body).toMatchObject(postData);
+    expect(body.id).toBeDefined();
+    createdPost = body;
   });
 
   it('/posts (GET) returns all posts', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/posts')
-      .expect(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
+    const res = await request(app.getHttpServer()).get('/posts').expect(200);
+    const body = res.body as Post[];
+    expect(Array.isArray(body)).toBe(true);
+    expect(body.length).toBeGreaterThan(0);
   });
 
   it('/posts/:id (GET) returns a post', async () => {
     const res = await request(app.getHttpServer())
       .get(`/posts/${createdPost.id}`)
       .expect(200);
-    expect(res.body.id).toBe(createdPost.id);
+    const body = res.body as Post;
+    expect(body.id).toBe(createdPost.id);
   });
 
   it('/posts/:id (PUT) updates a post', async () => {
@@ -56,8 +57,9 @@ describe('PostController (e2e)', () => {
       .put(`/posts/${createdPost.id}`)
       .send({ content: 'Updated content', status: 'published' })
       .expect(200);
-    expect(res.body.content).toBe('Updated content');
-    expect(res.body.status).toBe('published');
+    const body = res.body as Post;
+    expect(body.content).toBe('Updated content');
+    expect(body.status).toBe('published');
   });
 
   it('/posts/:id (DELETE) removes a post', async () => {

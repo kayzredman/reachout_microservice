@@ -1,6 +1,15 @@
-import { Controller, Get, Post as HttpPost, Body, Param, Put, Delete, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post as HttpPost,
+  Body,
+  Param,
+  Put,
+  Delete,
+  NotFoundException,
+} from '@nestjs/common';
 import { PostService } from './post.service';
-import { Post as PostType } from '../../../shared';
+import type { Post as PostType } from '../../../shared';
 
 @Controller('posts')
 export class PostController {
@@ -21,12 +30,17 @@ export class PostController {
   }
 
   @HttpPost()
-  create(@Body() post: Omit<PostType, 'id' | 'createdAt' | 'updatedAt'>): PostType {
+  create(
+    @Body() post: Omit<PostType, 'id' | 'createdAt' | 'updatedAt'>,
+  ): PostType {
     return this.postService.create(post);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() post: Partial<PostType>): PostType | undefined {
+  update(
+    @Param('id') id: string,
+    @Body() post: Partial<PostType>,
+  ): PostType | undefined {
     return this.postService.update(id, post);
   }
 
