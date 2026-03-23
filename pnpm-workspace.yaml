@@ -1,4 +1,9 @@
 packages:
-  - "services/*"
-  - "frontend"
-  - "shared"
+  - services/*
+  - frontend
+  - shared
+
+ignoredBuiltDependencies:
+  - '@clerk/shared'
+  - '@nestjs/core'
+  - unrs-resolver
