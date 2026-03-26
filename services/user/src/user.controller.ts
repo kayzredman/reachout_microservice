@@ -12,7 +12,14 @@ export class UserController {
   async getMe(@Req() req: any): Promise<User> {
     const clerkUser = req.user;
     if (!clerkUser) throw new NotFoundException('No Clerk user');
-    const user = await this.userService.getOrCreateByClerk(clerkUser.sub, clerkUser);
+    // Use headers from frontend API route for reliable user info
+    const clerkPayload = {
+      ...clerkUser,
+      email: req.headers['x-clerk-user-email'] || clerkUser.email || '',
+      name: req.headers['x-clerk-user-name'] || clerkUser.name || '',
+      image_url: req.headers['x-clerk-user-image'] || clerkUser.image_url || '',
+    };
+    const user = await this.userService.getOrCreateByClerk(clerkUser.sub, clerkPayload);
     return user;
   }
 

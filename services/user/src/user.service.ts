@@ -13,11 +13,12 @@ export class UserService {
   async getOrCreateByClerk(clerkId: string, clerkPayload: any): Promise<User> {
     let user = await this.userRepository.findOne({ where: { id: clerkId } });
     if (!user) {
+      const email = clerkPayload.email || `${clerkId}@placeholder.local`;
       user = this.userRepository.create({
         id: clerkId,
-        email: clerkPayload.email ?? '',
-        name: clerkPayload.name ?? clerkPayload.email ?? 'User',
-        imageUrl: clerkPayload.image_url,
+        email,
+        name: clerkPayload.name || clerkPayload.email || 'User',
+        imageUrl: clerkPayload.image_url || undefined,
       });
       await this.userRepository.save(user);
     }

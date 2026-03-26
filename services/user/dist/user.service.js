@@ -22,14 +22,14 @@ let UserService = class UserService {
         this.userRepository = userRepository;
     }
     async getOrCreateByClerk(clerkId, clerkPayload) {
-        var _a, _b, _c;
         let user = await this.userRepository.findOne({ where: { id: clerkId } });
         if (!user) {
+            const email = clerkPayload.email || `${clerkId}@placeholder.local`;
             user = this.userRepository.create({
                 id: clerkId,
-                email: (_a = clerkPayload.email) !== null && _a !== void 0 ? _a : '',
-                name: (_c = (_b = clerkPayload.name) !== null && _b !== void 0 ? _b : clerkPayload.email) !== null && _c !== void 0 ? _c : 'User',
-                imageUrl: clerkPayload.image_url,
+                email,
+                name: clerkPayload.name || clerkPayload.email || 'User',
+                imageUrl: clerkPayload.image_url || undefined,
             });
             await this.userRepository.save(user);
         }

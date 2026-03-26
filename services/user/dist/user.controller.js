@@ -24,7 +24,8 @@ let UserController = class UserController {
         const clerkUser = req.user;
         if (!clerkUser)
             throw new common_1.NotFoundException('No Clerk user');
-        const user = await this.userService.getOrCreateByClerk(clerkUser.sub, clerkUser);
+        const clerkPayload = Object.assign(Object.assign({}, clerkUser), { email: req.headers['x-clerk-user-email'] || clerkUser.email || '', name: req.headers['x-clerk-user-name'] || clerkUser.name || '', image_url: req.headers['x-clerk-user-image'] || clerkUser.image_url || '' });
+        const user = await this.userService.getOrCreateByClerk(clerkUser.sub, clerkPayload);
         return user;
     }
     async updateMe(req, updates) {
