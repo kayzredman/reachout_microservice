@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:15
+    container_name: faithreach-db
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: faithreach_user
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  supabase-studio:
+    image: supabase/studio:latest
+    container_name: supabase-studio
+    restart: always
+    depends_on:
+      - db
+    environment:
+      SUPABASE_DB_HOST: db
+      SUPABASE_DB_PORT: 5432
+      SUPABASE_DB_NAME: faithreach_user
+      SUPABASE_DB_USER: postgres
+      SUPABASE_DB_PASSWORD: postgres
+    ports:
+      - "54323:3000"
+
+volumes:
+  db-data:

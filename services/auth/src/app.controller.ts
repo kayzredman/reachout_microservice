@@ -2,7 +2,7 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ClerkAuthGuard } from './clerk-auth.guard';
-import { Request } from 'express';
+import type { Request } from 'express';
 
 @Controller()
 export class AppController {

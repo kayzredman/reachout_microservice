@@ -1,0 +1,5 @@
+
+
+> @faithreach/shared@0.1.0 build /Users/kwekku/Desktop/Builds/faithreach/shared
+> tsc -p tsconfig.json
+

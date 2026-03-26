@@ -13,7 +13,13 @@
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:profile": "turbo run dev --filter=frontend --filter=user --parallel",
     "build": "turbo run build",
+    "build:profile": "turbo run build --filter=frontend --filter=user",
     "lint": "turbo run lint"
+  },
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
+    "@types/express": "^5.0.6"
   }
 }

@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { verifyToken } from '@clerk/clerk-sdk-node';
 
 @Injectable()
