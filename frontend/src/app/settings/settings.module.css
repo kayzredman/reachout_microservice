@@ -1,0 +1,1170 @@
+/* ── Settings Page ────────────────────────────────────── */
+.settingsPage {
+  min-height: 100vh;
+  background: #f8f9fb;
+  padding: 40px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.settingsPage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%237c3aed' opacity='0.06'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.settingsPage::after {
+  content: '';
+  position: absolute;
+  top: -180px;
+  right: -120px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.settingsContainer {
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.pageHeader {
+  margin-bottom: 28px;
+}
+
+.pageHeader h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #181b20;
+  margin: 0 0 4px;
+}
+
+.pageHeader p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ── Tabs ────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tabBtn:hover {
+  color: #181b20;
+  background: #f8f9fb;
+}
+
+.tabBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tabBtnActive {
+  background: #f3f0ff;
+  color: #7c3aed;
+}
+
+.tabBtnActive:hover {
+  background: #f3f0ff;
+  color: #7c3aed;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 32px;
+  margin-bottom: 20px;
+}
+
+.cardTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #181b20;
+  margin: 0 0 24px;
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.cardTitleRow .cardTitle {
+  margin: 0;
+}
+
+.teamDesc {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: -12px 0 24px;
+  line-height: 1.5;
+}
+
+.orgProfileWrapper {
+  border-radius: 12px;
+  overflow: visible;
+  width: 100%;
+}
+
+/* ── Team Tab Custom Styles ── */
+
+.teamEmpty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.teamEmptyIcon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.teamEmpty h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #181b20;
+  margin-bottom: 8px;
+}
+
+.teamEmpty p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.orgHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0 0;
+}
+
+.orgAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.orgAvatarFallback {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orgName {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #181b20;
+}
+
+.orgSlug {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.memberCount {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.inviteRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.inviteRow .formInput {
+  flex: 1;
+  margin: 0;
+}
+
+.roleSelect {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #181b20;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.roleSelect:focus {
+  border-color: #7c3aed;
+}
+
+.pendingSection {
+  margin-bottom: 20px;
+}
+
+.pendingSectionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.memberRow:last-child {
+  border-bottom: none;
+}
+
+.memberAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.memberAvatarFallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #7c3aed;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #181b20;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memberRole {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.memberActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.memberActions .roleSelect {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.btnRemoveMember {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #fecaca;
+  background: #fff;
+  color: #ef4444;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btnRemoveMember:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+@media (max-width: 640px) {
+  .inviteRow {
+    flex-direction: column;
+  }
+
+  .memberActions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .memberRow {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── End Team Tab ── */
+
+.btnEdit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #181b20;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnEdit:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+.formValue {
+  font-size: 0.95rem;
+  color: #181b20;
+  font-weight: 500;
+  padding: 11px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ── Profile Tab ─────────────────────────────────────── */
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.avatarImg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #f3f0ff;
+}
+
+.avatarFallback {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f3f0ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.avatarActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.changePhotoBtn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #181b20;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.changePhotoBtn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+.avatarHint {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroupFull {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #181b20;
+}
+
+.formInput {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #f3f4f6;
+  font-size: 0.95rem;
+  color: #181b20;
+  transition: all 0.15s;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 2px #7c3aed33;
+}
+
+.formInput:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.formTextarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #f3f4f6;
+  font-size: 0.95rem;
+  color: #181b20;
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+  transition: all 0.15s;
+  box-sizing: border-box;
+}
+
+.formTextarea:focus {
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 2px #7c3aed33;
+}
+
+.formActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.btnCancel {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #f3f4f6;
+  color: #181b20;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnCancel:hover {
+  background: #e5e7eb;
+}
+
+.btnSave {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #181b20;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnSave:hover {
+  background: #0f111a;
+}
+
+.btnSave:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Security ────────────────────────────────────────── */
+.passwordGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.btnOutline {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #181b20;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnOutline:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+/* ── Danger Zone ─────────────────────────────────────── */
+.dangerCard {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 32px;
+  margin-bottom: 20px;
+  border: 1.5px solid #fecaca;
+}
+
+.dangerTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0 0 20px;
+}
+
+.dangerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+
+.dangerItem + .dangerItem {
+  border-top: 1px solid #fef2f2;
+}
+
+.dangerItemInfo h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #181b20;
+  margin: 0 0 2px;
+}
+
+.dangerItemInfo p {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.btnLogout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #181b20;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnLogout:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.btnDelete {
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: none;
+  background: #dc2626;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnDelete:hover {
+  background: #b91c1c;
+}
+
+/* ── Platforms Tab ───────────────────────────────────── */
+.platformItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8f9fb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  transition: background 0.15s;
+}
+
+.platformItem:hover {
+  background: #f3f0ff;
+}
+
+.platformIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.platformInfo {
+  flex: 1;
+}
+
+.platformName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #181b20;
+}
+
+.platformHandle {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.platformStatus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.statusConnected {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.statusDisconnected {
+  background: #f3f4f6;
+  color: #94a3b8;
+}
+
+.btnConnect {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: #181b20;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnConnect:hover {
+  background: #0f111a;
+}
+
+.btnDisconnect {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnDisconnect:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.permissionsBox {
+  background: #f8f9fb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.permissionsTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #181b20;
+  margin-bottom: 12px;
+}
+
+.permissionsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permissionsList li {
+  font-size: 0.88rem;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.permGreen {
+  color: #16a34a;
+}
+
+.permRed {
+  color: #dc2626;
+}
+
+/* ── Notifications Tab ───────────────────────────────── */
+.notifSection {
+  margin-bottom: 28px;
+}
+
+.notifSection:last-child {
+  margin-bottom: 0;
+}
+
+.notifSectionTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #181b20;
+  margin-bottom: 4px;
+}
+
+.notifSectionDesc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-bottom: 14px;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.toggleRow + .toggleRow {
+  border-top: 1px solid #f1f5f9;
+}
+
+.toggleLabel {
+  font-size: 0.9rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: none;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s;
+}
+
+.toggle:checked {
+  background: #7c3aed;
+}
+
+.toggle:checked::after {
+  transform: translateX(20px);
+}
+
+/* ── Billing Tab ─────────────────────────────────────── */
+.planCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #f3f0ff 0%, #faf5ff 100%);
+  border: 1.5px solid #ddd6fe;
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+}
+
+.planInfo h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #7c3aed;
+  margin: 0 0 4px;
+}
+
+.planInfo p {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin: 0 0 14px;
+}
+
+.planFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planFeatures li {
+  font-size: 0.85rem;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.planPriceBlock {
+  text-align: right;
+}
+
+.planPrice {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.planPeriod {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 14px;
+}
+
+.btnChangePlan {
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: 1.5px solid #7c3aed;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnChangePlan:hover {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.billingMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.billingMetaRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.billingMetaLabel {
+  color: #64748b;
+}
+
+.billingMetaValue {
+  color: #181b20;
+  font-weight: 600;
+}
+
+.historyTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #181b20;
+  margin-bottom: 14px;
+}
+
+.historyTable {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8f9fb;
+}
+
+.historyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+}
+
+.historyRow + .historyRow {
+  border-top: 1px solid #f1f5f9;
+}
+
+.historyDate {
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.historyAmount {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #181b20;
+}
+
+.historyBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #dcfce7;
+  color: #16a34a;
+  margin-left: 8px;
+}
+
+.btnDownload {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnDownload:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+/* ── Loading / Error ─────────────────────────────────── */
+.loadingState {
+  text-align: center;
+  padding: 80px 24px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #f3f0ff;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin: 0 auto 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.errorText {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 40px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  animation: slideUp 0.3s ease;
+}
+
+.toastSuccess {
+  background: #16a34a;
+  color: #fff;
+}
+
+.toastError {
+  background: #dc2626;
+  color: #fff;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .settingsPage {
+    padding: 24px 16px;
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+
+  .tabBtn {
+    padding: 8px 14px;
+    font-size: 0.82rem;
+  }
+
+  .card, .dangerCard {
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .planCard {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+  }
+
+  .planPriceBlock {
+    text-align: center;
+  }
+
+  .dangerItem {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .historyRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabs {
+    flex-direction: column;
+  }
+
+  .avatarRow {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .btnCancel, .btnSave {
+    width: 100%;
+    justify-content: center;
+  }
+}

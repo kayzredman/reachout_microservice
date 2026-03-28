@@ -1,0 +1,47 @@
+.dashboardCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 200px;
+  flex: 1;
+  box-shadow: 0 6px 32px 0 rgba(44, 62, 80, 0.18), 0 1.5px 6px 0 rgba(44, 62, 80, 0.10);
+  transition: box-shadow 0.2s;
+}
+.dashboardCard:hover {
+  box-shadow: 0 12px 40px 0 rgba(44, 62, 80, 0.22), 0 3px 12px 0 rgba(44, 62, 80, 0.14);
+}
+
+/* Responsive styles for dashboard layout */
+@media (max-width: 900px) {
+  .dashboardRow {
+    flex-direction: column;
+    gap: 16px !important;
+  }
+  .dashboardCard {
+    min-width: 0;
+    width: 100%;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboardRow {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+  .dashboardCard {
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.98rem;
+  }
+  .dashboardActions {
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .dashboardActions button {
+    width: 100% !important;
+    font-size: 0.98rem !important;
+    padding: 12px 0 !important;
+  }
+}
