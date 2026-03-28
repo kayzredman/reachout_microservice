@@ -17,6 +17,13 @@ import { ClerkAuthGuard } from './clerk-auth.guard';
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
+  /** GET /posts/:orgId/scheduled — List scheduled posts (MUST be before :orgId/:id) */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId/scheduled')
+  async findScheduled(@Param('orgId') orgId: string) {
+    return this.postService.findScheduled(orgId);
+  }
+
   /** GET /posts/:orgId — List all posts for an organization */
   @UseGuards(ClerkAuthGuard)
   @Get(':orgId')
@@ -105,12 +112,5 @@ export class PostController {
     @Param('id') id: string,
   ) {
     return this.postService.cancelSchedule(orgId, id);
-  }
-
-  /** GET /posts/:orgId/scheduled — List scheduled posts */
-  @UseGuards(ClerkAuthGuard)
-  @Get(':orgId/scheduled')
-  async findScheduled(@Param('orgId') orgId: string) {
-    return this.postService.findScheduled(orgId);
   }
 }
