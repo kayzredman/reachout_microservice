@@ -52,6 +52,14 @@ export class PostEntity {
   @Column({ type: 'timestamptz', nullable: true })
   publishedAt?: Date;
 
+  /** Optional series association */
+  @Column({ type: 'uuid', nullable: true })
+  seriesId?: string;
+
+  /** Order within a series (1, 2, 3...) */
+  @Column({ type: 'int', nullable: true })
+  seriesNumber?: number;
+
   @CreateDateColumn()
   createdAt!: Date;
 

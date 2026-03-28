@@ -909,3 +909,50 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ── Edit / Reuse Mode Banner ── */
+.modeBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.modeBannerEdit {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
+}
+
+.modeBannerReuse {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+}
+
+.modeBannerCancel {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+
+.modeBannerCancel:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.loadingBanner {
+  text-align: center;
+  padding: 12px;
+  color: #6b7280;
+  font-size: 14px;
+}

@@ -5,6 +5,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PostController } from './post.controller';
 import { PostService } from './post.service';
 import { PostEntity } from './post.entity';
+import { SeriesController } from './series.controller';
+import { SeriesService } from './series.service';
+import { SeriesEntity } from './series.entity';
 
 @Module({
   imports: [
@@ -17,12 +20,12 @@ import { PostEntity } from './post.entity';
       username: 'postgres',
       password: 'postgres',
       database: 'faithreach_post',
-      entities: [PostEntity],
+      entities: [PostEntity, SeriesEntity],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([PostEntity]),
+    TypeOrmModule.forFeature([PostEntity, SeriesEntity]),
   ],
-  controllers: [PostController],
-  providers: [PostService],
+  controllers: [PostController, SeriesController],
+  providers: [PostService, SeriesService],
 })
 export class AppModule {}

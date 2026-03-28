@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import {
   FaInstagram,
@@ -168,6 +169,17 @@ export default function PostPage() {
   const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Edit/Reuse mode
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [mode, setMode] = useState<"new" | "edit" | "reuse">("new");
+  const [loadingPost, setLoadingPost] = useState(false);
+
+  // Series context (from planner)
+  const [seriesId, setSeriesId] = useState<string | null>(null);
+  const [seriesTitle, setSeriesTitle] = useState<string | null>(null);
 
   // Content state
   const [content, setContent] = useState("");
@@ -313,6 +325,57 @@ export default function PostPage() {
     };
   }, [orgId, getToken]);
 
+  // Read series context from query params
+  useEffect(() => {
+    const sId = searchParams.get("seriesId");
+    const sTitle = searchParams.get("seriesTitle");
+    if (sId) {
+      setSeriesId(sId);
+      setSeriesTitle(sTitle || "Series");
+      router.replace("/post", { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load post for edit/reuse mode
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    const reuseId = searchParams.get("reuse");
+    const postId = editId || reuseId;
+    if (!postId || !orgId) return;
+
+    setMode(editId ? "edit" : "reuse");
+    if (editId) setEditingPostId(editId);
+    setLoadingPost(true);
+
+    (async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`/api/posts/${orgId}/${postId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to load post");
+        const post = await res.json();
+
+        setContent(post.content || "");
+        if (post.imageUrl) setImageUrl(post.imageUrl);
+        if (post.platforms?.length) {
+          setSelectedPlatforms(new Set(post.platforms as PlatformKey[]));
+        }
+
+        // Clear the query params from URL without triggering navigation
+        router.replace("/post", { scroll: false });
+      } catch {
+        showToast("error", "Failed to load post");
+        setMode("new");
+        setEditingPostId(null);
+      } finally {
+        setLoadingPost(false);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
   // Derived state
   const hasImagePlatforms = Array.from(selectedPlatforms).some(
     (p) => p === "Instagram" || p === "Facebook"
@@ -331,6 +394,30 @@ export default function PostPage() {
     selectedPlatforms.size > 0 &&
     (!needsImage || imageUrl.trim().length > 0) &&
     !isOverLimit;
+
+  // Helper: link a newly created post to a series
+  const linkPostToSeries = async (postId: string) => {
+    if (!seriesId || !orgId) return;
+    try {
+      const token = await getToken();
+      await fetch(`/api/series/${orgId}/${seriesId}/posts/${postId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // non-blocking — post was still created
+    }
+  };
+
+  const resetForm = () => {
+    setContent("");
+    removeImage();
+    setSelectedPlatforms(new Set());
+    setMode("new");
+    setEditingPostId(null);
+    setSeriesId(null);
+    setSeriesTitle(null);
+  };
 
   const togglePlatform = (key: PlatformKey) => {
     setSelectedPlatforms((prev) => {
@@ -365,26 +452,52 @@ export default function PostPage() {
         });
       }
 
-      // 1. Create the post
-      const createRes = await fetch(`/api/posts/${orgId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          imageUrl: finalImageUrl || undefined,
-          platforms: Array.from(selectedPlatforms),
-        }),
-      });
-
-      if (!createRes.ok) {
-        const err = await createRes.json();
-        throw new Error(err.message || "Failed to create post");
+      // 1. Create or update the post
+      let post;
+      if (mode === "edit" && editingPostId) {
+        // Update existing post
+        const updateRes = await fetch(`/api/posts/${orgId}/${editingPostId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            imageUrl: finalImageUrl || undefined,
+            platforms: Array.from(selectedPlatforms),
+          }),
+        });
+        if (!updateRes.ok) {
+          const err = await updateRes.json();
+          throw new Error(err.message || "Failed to update post");
+        }
+        post = await updateRes.json();
+      } else {
+        // Create new post
+        const createRes = await fetch(`/api/posts/${orgId}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            imageUrl: finalImageUrl || undefined,
+            platforms: Array.from(selectedPlatforms),
+          }),
+        });
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          throw new Error(err.message || "Failed to create post");
+        }
+        post = await createRes.json();
       }
 
-      const post = await createRes.json();
+      // Link to series if creating from planner
+      if (mode !== "edit" && seriesId) {
+        await linkPostToSeries(post.id);
+      }
 
       // 2. Publish it
       const publishRes = await fetch(`/api/posts/${orgId}/${post.id}/publish`, {
@@ -397,9 +510,7 @@ export default function PostPage() {
 
       if (result.status === "published") {
         showToast("success", "Published to all platforms!");
-        setContent("");
-        removeImage();
-        setSelectedPlatforms(new Set());
+        resetForm();
       } else if (result.status === "partially_failed") {
         showToast(
           "info",
@@ -433,28 +544,41 @@ export default function PostPage() {
 
     try {
       const token = await getToken();
-      const res = await fetch(`/api/posts/${orgId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          imageUrl: imageUrl.startsWith("blob:") ? undefined : imageUrl || undefined,
-          platforms: Array.from(selectedPlatforms),
-        }),
+      const body = JSON.stringify({
+        content,
+        imageUrl: imageUrl.startsWith("blob:") ? undefined : imageUrl || undefined,
+        platforms: Array.from(selectedPlatforms),
       });
+
+      let res;
+      if (mode === "edit" && editingPostId) {
+        res = await fetch(`/api/posts/${orgId}/${editingPostId}`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body,
+        });
+      } else {
+        res = await fetch(`/api/posts/${orgId}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body,
+        });
+      }
 
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || "Failed to save draft");
       }
 
-      showToast("success", "Draft saved!");
-      setContent("");
-      removeImage();
-      setSelectedPlatforms(new Set());
+      const savedPost = await res.json();
+
+      // Link to series if creating from planner
+      if (mode !== "edit" && seriesId && savedPost?.id) {
+        await linkPostToSeries(savedPost.id);
+      }
+
+      showToast("success", mode === "edit" ? "Post updated!" : "Draft saved!");
+      resetForm();
 
       // Refresh recent posts
       const listRes = await fetch(`/api/posts/${orgId}`, {
@@ -491,26 +615,50 @@ export default function PostPage() {
         });
       }
 
-      // 1. Create the post as draft
-      const createRes = await fetch(`/api/posts/${orgId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          imageUrl: finalImageUrl || undefined,
-          platforms: Array.from(selectedPlatforms),
-        }),
-      });
-
-      if (!createRes.ok) {
-        const err = await createRes.json();
-        throw new Error(err.message || "Failed to create post");
+      // 1. Create or update the post
+      let post;
+      if (mode === "edit" && editingPostId) {
+        const updateRes = await fetch(`/api/posts/${orgId}/${editingPostId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            imageUrl: finalImageUrl || undefined,
+            platforms: Array.from(selectedPlatforms),
+          }),
+        });
+        if (!updateRes.ok) {
+          const err = await updateRes.json();
+          throw new Error(err.message || "Failed to update post");
+        }
+        post = await updateRes.json();
+      } else {
+        const createRes = await fetch(`/api/posts/${orgId}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            imageUrl: finalImageUrl || undefined,
+            platforms: Array.from(selectedPlatforms),
+          }),
+        });
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          throw new Error(err.message || "Failed to create post");
+        }
+        post = await createRes.json();
       }
 
-      const post = await createRes.json();
+      // Link to series if creating from planner
+      if (mode !== "edit" && seriesId) {
+        await linkPostToSeries(post.id);
+      }
 
       // 2. Schedule it
       const schedRes = await fetch(`/api/posts/${orgId}/${post.id}/schedule`, {
@@ -528,9 +676,7 @@ export default function PostPage() {
       }
 
       showToast("success", `Scheduled for ${new Date(scheduleDate).toLocaleString()}`);
-      setContent("");
-      removeImage();
-      setSelectedPlatforms(new Set());
+      resetForm();
       setScheduleDate("");
       setShowSchedulePicker(false);
 
@@ -581,6 +727,34 @@ export default function PostPage() {
           Create and publish content across your connected platforms
         </p>
       </div>
+
+      {/* Series context banner */}
+      {seriesId && seriesTitle && (
+        <div className={`${styles.modeBanner} ${styles.modeBannerReuse}`}>
+          <span>📚 Creating post for series: <strong>{seriesTitle}</strong></span>
+          <button className={styles.modeBannerCancel} onClick={() => { setSeriesId(null); setSeriesTitle(null); }}>✕ Detach</button>
+        </div>
+      )}
+
+      {/* Edit/Reuse mode banner */}
+      {mode !== "new" && (
+        <div className={`${styles.modeBanner} ${mode === "edit" ? styles.modeBannerEdit : styles.modeBannerReuse}`}>
+          <span>
+            {mode === "edit" ? "✏️ Editing existing post" : "♻️ Reusing content from existing post"}
+            {mode === "edit" ? " — changes will update the original" : " — will create a new post"}
+          </span>
+          <button
+            className={styles.modeBannerCancel}
+            onClick={resetForm}
+          >
+            ✕ Cancel
+          </button>
+        </div>
+      )}
+
+      {loadingPost && (
+        <div className={styles.loadingBanner}>Loading post data...</div>
+      )}
 
       <div className={styles.layout}>
         {/* ── Main Column ── */}
@@ -761,7 +935,7 @@ export default function PostPage() {
                   savingDraft
                 }
               >
-                {savingDraft ? "Saving..." : "💾 Draft"}
+                {savingDraft ? "Saving..." : mode === "edit" ? "💾 Update Draft" : "💾 Draft"}
               </button>
             </div>
 
