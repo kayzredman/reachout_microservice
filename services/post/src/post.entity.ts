@@ -33,7 +33,7 @@ export class PostEntity {
 
   /** Overall post status */
   @Column({ default: 'draft' })
-  status!: 'draft' | 'publishing' | 'published' | 'partially_failed' | 'failed';
+  status!: 'draft' | 'scheduled' | 'publishing' | 'published' | 'partially_failed' | 'failed';
 
   /** Per-platform publish results */
   @Column({ type: 'jsonb', default: [] })

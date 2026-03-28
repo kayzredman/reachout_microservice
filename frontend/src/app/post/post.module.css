@@ -367,6 +367,94 @@
   cursor: not-allowed;
 }
 
+/* ── Schedule toggle button ── */
+.scheduleToggleBtn {
+  flex: 1;
+  background: #fff;
+  color: #7c3aed;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.scheduleToggleBtn:hover {
+  border-color: #7c3aed;
+}
+
+.scheduleToggleBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Schedule picker panel ── */
+.schedulePicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  background: #f8f5ff;
+  border-radius: 12px;
+  border: 1.5px solid #e9e0fc;
+}
+
+.scheduleLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.scheduleDateInput {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #181b20;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.scheduleDateInput:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.scheduleConfirmBtn {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.scheduleConfirmBtn:hover {
+  opacity: 0.92;
+}
+
+.scheduleConfirmBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Connected Platforms sidebar — 2×2 grid tiles ── */
 .connectedGrid {
   display: grid;

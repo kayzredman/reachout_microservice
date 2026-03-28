@@ -3,15 +3,26 @@ import Link from "next/link";
 import { useUser, useOrganization, OrganizationSwitcher } from "@clerk/nextjs";
 import Image from "next/image";
 import { useState } from "react";
+import {
+  HiOutlineViewGrid,
+  HiOutlineUser,
+  HiOutlinePaperAirplane,
+  HiOutlineCollection,
+  HiOutlineClock,
+  HiOutlineChartBar,
+  HiOutlineClipboardList,
+  HiOutlineCog,
+} from "react-icons/hi";
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: "\u{1F4C8}" },
-  { label: "Profile", href: "/profile", icon: "\u{1F464}" },
-  { label: "Publisher", href: "/post", icon: "\u{2708}" },
-  { label: "Scheduler", href: "/scheduler", icon: "\u{1F4C5}" },
-  { label: "Analytics", href: "/analytics", icon: "\u{1F4CA}" },
-  { label: "Planner", href: "/planner", icon: "\u{1F4C4}" },
-  { label: "Settings", href: "/settings", icon: "\u2699" },
+  { label: "Dashboard", href: "/", icon: <HiOutlineViewGrid /> },
+  { label: "Profile", href: "/profile", icon: <HiOutlineUser /> },
+  { label: "Publisher", href: "/post", icon: <HiOutlinePaperAirplane style={{ transform: "rotate(45deg)" }} /> },
+  { label: "Content", href: "/content", icon: <HiOutlineCollection /> },
+  { label: "Scheduler", href: "/scheduler", icon: <HiOutlineClock /> },
+  { label: "Analytics", href: "/analytics", icon: <HiOutlineChartBar /> },
+  { label: "Planner", href: "/planner", icon: <HiOutlineClipboardList /> },
+  { label: "Settings", href: "/settings", icon: <HiOutlineCog /> },
 ];
 
 export default function Sidebar() {

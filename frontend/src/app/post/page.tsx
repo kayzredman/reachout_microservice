@@ -188,6 +188,9 @@ export default function PostPage() {
   // Publishing state
   const [publishing, setPublishing] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [publishResults, setPublishResults] = useState<PublishResult[] | null>(
     null
   );
@@ -470,6 +473,83 @@ export default function PostPage() {
     }
   };
 
+  // Schedule handler
+  const handleSchedule = async () => {
+    if (!canPublish || !orgId || !scheduleDate) return;
+    setScheduling(true);
+
+    try {
+      const token = await getToken();
+
+      // Convert image to base64 if needed
+      let finalImageUrl = imageUrl;
+      if (imageFile && imageUrl.startsWith("blob:")) {
+        finalImageUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(imageFile);
+        });
+      }
+
+      // 1. Create the post as draft
+      const createRes = await fetch(`/api/posts/${orgId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+          imageUrl: finalImageUrl || undefined,
+          platforms: Array.from(selectedPlatforms),
+        }),
+      });
+
+      if (!createRes.ok) {
+        const err = await createRes.json();
+        throw new Error(err.message || "Failed to create post");
+      }
+
+      const post = await createRes.json();
+
+      // 2. Schedule it
+      const schedRes = await fetch(`/api/posts/${orgId}/${post.id}/schedule`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scheduledAt: new Date(scheduleDate).toISOString() }),
+      });
+
+      if (!schedRes.ok) {
+        const err = await schedRes.json();
+        throw new Error(err.message || "Failed to schedule post");
+      }
+
+      showToast("success", `Scheduled for ${new Date(scheduleDate).toLocaleString()}`);
+      setContent("");
+      removeImage();
+      setSelectedPlatforms(new Set());
+      setScheduleDate("");
+      setShowSchedulePicker(false);
+
+      // Refresh recent posts
+      const listRes = await fetch(`/api/posts/${orgId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (listRes.ok) {
+        const data = await listRes.json();
+        setRecentPosts(data.slice(0, 5));
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to schedule";
+      showToast("error", msg);
+    } finally {
+      setScheduling(false);
+    }
+  };
+
   const platformIcon = (name: string) => {
     const map: Record<string, React.ReactNode> = {
       Instagram: <FaInstagram style={{ color: "#E1306C" }} />,
@@ -540,21 +620,6 @@ export default function PostPage() {
                         {p.connected ? p.handle : "Not connected"}
                       </span>
                     </div>
-                    <span
-                      className={`${styles.platformBadge} ${
-                        p.type === "text"
-                          ? styles.badgeText
-                          : p.key === "Instagram"
-                            ? styles.badgeRequired
-                            : styles.badgeImage
-                      }`}
-                    >
-                      {p.type === "text"
-                        ? "Text"
-                        : p.key === "Instagram"
-                          ? "Image req."
-                          : "Image opt."}
-                    </span>
                   </label>
                 ))}
               </div>
@@ -680,6 +745,14 @@ export default function PostPage() {
                 )}
               </button>
               <button
+                className={styles.scheduleToggleBtn}
+                onClick={() => setShowSchedulePicker((v) => !v)}
+                disabled={!canPublish}
+                style={showSchedulePicker ? { borderColor: "#7c3aed", background: "#f8f5ff" } : undefined}
+              >
+                🕐 Schedule
+              </button>
+              <button
                 className={styles.draftBtn}
                 onClick={handleSaveDraft}
                 disabled={
@@ -688,9 +761,34 @@ export default function PostPage() {
                   savingDraft
                 }
               >
-                {savingDraft ? "Saving..." : "💾 Save Draft"}
+                {savingDraft ? "Saving..." : "💾 Draft"}
               </button>
             </div>
+
+            {/* Schedule picker */}
+            {showSchedulePicker && (
+              <div className={styles.schedulePicker}>
+                <label className={styles.scheduleLabel}>Pick date & time:</label>
+                <input
+                  type="datetime-local"
+                  className={styles.scheduleDateInput}
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                />
+                <button
+                  className={styles.scheduleConfirmBtn}
+                  onClick={handleSchedule}
+                  disabled={!scheduleDate || scheduling || !canPublish}
+                >
+                  {scheduling ? (
+                    <><span className={styles.spinner} /> Scheduling...</>
+                  ) : (
+                    <>📅 Confirm Schedule</>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* Publish results */}
             {publishResults && (
@@ -800,7 +898,7 @@ export default function PostPage() {
                 </div>
                 <div className={styles.tipCardBody}>
                   <strong>X (Twitter)</strong>
-                  <span>280 chars max. Keep it punchy.</span>
+                  <span>Text only · 280 chars max. Keep it punchy.</span>
                 </div>
               </div>
               <div className={styles.tipCard}>
@@ -809,7 +907,7 @@ export default function PostPage() {
                 </div>
                 <div className={styles.tipCardBody}>
                   <strong>WhatsApp</strong>
-                  <span>Channel posts. Add emojis!</span>
+                  <span>Text only · Channel posts. Add emojis!</span>
                 </div>
               </div>
               <div className={styles.tipCard}>
@@ -818,7 +916,7 @@ export default function PostPage() {
                 </div>
                 <div className={styles.tipCardBody}>
                   <strong>Instagram</strong>
-                  <span>Image required. 1080×1080 ideal.</span>
+                  <span>Image required · 1080×1080 ideal.</span>
                 </div>
               </div>
               <div className={styles.tipCard}>
@@ -827,7 +925,7 @@ export default function PostPage() {
                 </div>
                 <div className={styles.tipCardBody}>
                   <strong>Facebook</strong>
-                  <span>Images boost engagement 2.3×.</span>
+                  <span>Image optional · Boosts engagement 2.3×.</span>
                 </div>
               </div>
             </div>

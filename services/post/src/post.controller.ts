@@ -82,4 +82,35 @@ export class PostController {
     const token = authHeader?.replace('Bearer ', '') || '';
     return this.postService.publish(orgId, id, token);
   }
+
+  /** POST /posts/:orgId/:id/schedule — Schedule a post for later */
+  @UseGuards(ClerkAuthGuard)
+  @HttpPost(':orgId/:id/schedule')
+  async schedule(
+    @Param('orgId') orgId: string,
+    @Param('id') id: string,
+    @Body() body: { scheduledAt: string },
+    @Req() req: any,
+  ) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || '';
+    return this.postService.schedule(orgId, id, body.scheduledAt, token);
+  }
+
+  /** DELETE /posts/:orgId/:id/schedule — Cancel a scheduled post (revert to draft) */
+  @UseGuards(ClerkAuthGuard)
+  @Delete(':orgId/:id/schedule')
+  async cancelSchedule(
+    @Param('orgId') orgId: string,
+    @Param('id') id: string,
+  ) {
+    return this.postService.cancelSchedule(orgId, id);
+  }
+
+  /** GET /posts/:orgId/scheduled — List scheduled posts */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId/scheduled')
+  async findScheduled(@Param('orgId') orgId: string) {
+    return this.postService.findScheduled(orgId);
+  }
 }

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PostEntity } from './post.entity';
 
 /** Platforms that require an image */
@@ -12,6 +13,8 @@ const TEXT_ONLY_PLATFORMS = ['X (Twitter)', 'WhatsApp'];
 
 @Injectable()
 export class PostService {
+  private readonly logger = new Logger(PostService.name);
+
   constructor(
     @InjectRepository(PostEntity)
     private postRepo: Repository<PostEntity>,
@@ -171,5 +174,115 @@ export class PostService {
     }
 
     return this.postRepo.save(post);
+  }
+
+  /** Schedule a post for future publishing */
+  async schedule(
+    organizationId: string,
+    id: string,
+    scheduledAt: string,
+    authToken: string,
+  ): Promise<PostEntity> {
+    const post = await this.findOne(organizationId, id);
+
+    if (post.status === 'published') {
+      throw new BadRequestException('Post is already published');
+    }
+
+    const scheduleDate = new Date(scheduledAt);
+    if (isNaN(scheduleDate.getTime())) {
+      throw new BadRequestException('Invalid date');
+    }
+    if (scheduleDate.getTime() <= Date.now()) {
+      throw new BadRequestException('Scheduled time must be in the future');
+    }
+
+    // Validate Instagram image requirement upfront
+    if (post.platforms.includes('Instagram') && !post.imageUrl) {
+      throw new BadRequestException('Instagram posts require an image');
+    }
+
+    post.scheduledAt = scheduleDate;
+    post.status = 'scheduled';
+    // Store the auth token for later use by the cron job
+    // (We'll store it in publishResults temporarily as metadata)
+    post.publishResults = [{ platform: '__auth__', status: 'pending', platformPostId: authToken }];
+
+    return this.postRepo.save(post);
+  }
+
+  /** Cancel a scheduled post — revert to draft */
+  async cancelSchedule(
+    organizationId: string,
+    id: string,
+  ): Promise<PostEntity> {
+    const post = await this.findOne(organizationId, id);
+
+    if (post.status !== 'scheduled') {
+      throw new BadRequestException('Post is not scheduled');
+    }
+
+    post.status = 'draft';
+    post.scheduledAt = undefined;
+    post.publishResults = [];
+
+    return this.postRepo.save(post);
+  }
+
+  /** List all scheduled posts for an organization */
+  async findScheduled(organizationId: string): Promise<PostEntity[]> {
+    return this.postRepo.find({
+      where: { organizationId, status: 'scheduled' },
+      order: { scheduledAt: 'ASC' },
+    });
+  }
+
+  /**
+   * Cron job: runs every 30 seconds.
+   * Picks up posts where status = 'scheduled' and scheduledAt <= now, then publishes them.
+   */
+  @Cron(CronExpression.EVERY_30_SECONDS)
+  async handleScheduledPosts(): Promise<void> {
+    const now = new Date();
+    const duePosts = await this.postRepo.find({
+      where: {
+        status: 'scheduled',
+        scheduledAt: LessThanOrEqual(now),
+      },
+    });
+
+    if (duePosts.length === 0) return;
+
+    this.logger.log(`Found ${duePosts.length} scheduled post(s) ready to publish`);
+
+    for (const post of duePosts) {
+      try {
+        // Retrieve stored auth token
+        const authEntry = post.publishResults?.find(r => r.platform === '__auth__');
+        const authToken = authEntry?.platformPostId || '';
+
+        if (!authToken) {
+          this.logger.warn(`No auth token for scheduled post ${post.id}, marking failed`);
+          post.status = 'failed';
+          post.publishResults = post.platforms.map(p => ({
+            platform: p,
+            status: 'failed' as const,
+            error: 'No authentication token available',
+          }));
+          await this.postRepo.save(post);
+          continue;
+        }
+
+        // Reset publishResults before publish
+        post.publishResults = [];
+        await this.postRepo.save(post);
+
+        this.logger.log(`Publishing scheduled post ${post.id}...`);
+        await this.publish(post.organizationId, post.id, authToken);
+        this.logger.log(`Scheduled post ${post.id} published successfully`);
+      } catch (err) {
+        this.logger.error(`Failed to publish scheduled post ${post.id}: ${err}`);
+      }
+    }
   }
 }
