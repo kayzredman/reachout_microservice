@@ -49,6 +49,10 @@ export class PlatformConnection {
   @Column({ nullable: true })
   phoneNumber?: string;
 
+  /** WhatsApp Channel ID for broadcasting via Channels */
+  @Column({ nullable: true })
+  channelId?: string;
+
   /** Clerk user ID who connected this platform */
   @Column()
   connectedBy!: string;

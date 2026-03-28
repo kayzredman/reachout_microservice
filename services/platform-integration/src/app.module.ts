@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlatformController } from './platform.controller.js';
 import { PlatformService } from './platform.service.js';
 import { PlatformConnection } from './platform-connection.entity.js';
+import { WhatsAppWebhookController } from './whatsapp-webhook.controller.js';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { PlatformConnection } from './platform-connection.entity.js';
     }),
     TypeOrmModule.forFeature([PlatformConnection]),
   ],
-  controllers: [PlatformController],
+  controllers: [PlatformController, WhatsAppWebhookController],
   providers: [PlatformService],
 })
 export class AppModule {}

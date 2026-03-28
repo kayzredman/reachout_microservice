@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ClerkAuthGuard } from './clerk-auth.guard.js';
 import { PlatformService } from './platform.service.js';
@@ -31,6 +32,8 @@ export class PlatformController {
       connected: c.connected,
       handle: c.handle,
       phoneNumber: c.phoneNumber,
+      channelId: c.channelId,
+      tokenExpiresAt: c.tokenExpiresAt,
       connectedBy: c.connectedBy,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
@@ -46,13 +49,13 @@ export class PlatformController {
   @Post(':orgId/connect')
   async connect(
     @Param('orgId') orgId: string,
-    @Body() body: { platform: string; phoneNumber?: string; phoneNumberId?: string; accessToken?: string },
+    @Body() body: { platform: string; phoneNumber?: string; phoneNumberId?: string; accessToken?: string; channelId?: string },
     @Req() req: any,
   ) {
     const userId = req.user?.sub;
     if (!userId) throw new BadRequestException('Missing user');
 
-    const { platform, phoneNumber, phoneNumberId, accessToken } = body;
+    const { platform, phoneNumber, phoneNumberId, accessToken, channelId } = body;
     if (!platform) throw new BadRequestException('Platform is required');
 
     // WhatsApp: direct connection via Business API credentials
@@ -63,7 +66,7 @@ export class PlatformController {
         );
       }
       const conn = await this.platformService.connectWhatsApp(
-        orgId, userId, phoneNumberId, accessToken, phoneNumber,
+        orgId, userId, phoneNumberId, accessToken, phoneNumber, channelId,
       );
       return {
         connected: true,
@@ -132,5 +135,26 @@ export class PlatformController {
   ) {
     await this.platformService.disconnect(orgId, platform);
     return { disconnected: true, platform };
+  }
+
+  /**
+   * GET /platforms/:orgId/connection/:platform
+   * Internal endpoint for service-to-service calls (metrics polling).
+   * Returns the full connection including tokens.
+   */
+  @Get(':orgId/connection/:platform')
+  async getConnection(
+    @Param('orgId') orgId: string,
+    @Param('platform') platform: string,
+  ) {
+    const conn = await this.platformService.getConnection(orgId, platform);
+    if (!conn || !conn.connected) {
+      throw new NotFoundException(`${platform} is not connected for this organization`);
+    }
+    return {
+      accessToken: conn.accessToken,
+      platformAccountId: conn.platformAccountId,
+      channelId: conn.channelId,
+    };
   }
 }

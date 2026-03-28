@@ -8,6 +8,9 @@ import { PostEntity } from './post.entity';
 import { SeriesController } from './series.controller';
 import { SeriesService } from './series.service';
 import { SeriesEntity } from './series.entity';
+import { PostMetrics } from './post-metrics.entity';
+import { MetricsController } from './metrics.controller';
+import { MetricsService } from './metrics.service';
 
 @Module({
   imports: [
@@ -20,12 +23,12 @@ import { SeriesEntity } from './series.entity';
       username: 'postgres',
       password: 'postgres',
       database: 'faithreach_post',
-      entities: [PostEntity, SeriesEntity],
+      entities: [PostEntity, SeriesEntity, PostMetrics],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([PostEntity, SeriesEntity]),
+    TypeOrmModule.forFeature([PostEntity, SeriesEntity, PostMetrics]),
   ],
-  controllers: [PostController, SeriesController],
-  providers: [PostService, SeriesService],
+  controllers: [PostController, SeriesController, MetricsController],
+  providers: [PostService, SeriesService, MetricsService],
 })
 export class AppModule {}

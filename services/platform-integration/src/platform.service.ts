@@ -140,6 +140,7 @@ export class PlatformService {
     phoneNumberId: string,
     accessToken: string,
     phoneNumber?: string,
+    channelId?: string,
   ): Promise<PlatformConnection> {
     if (!phoneNumberId || !accessToken) {
       throw new BadRequestException(
@@ -180,6 +181,7 @@ export class PlatformService {
     conn.phoneNumber = displayPhone;
     conn.handle = displayName || displayPhone;
     conn.connectedBy = connectedBy;
+    conn.channelId = channelId || undefined;
 
     return this.connRepo.save(conn);
   }
@@ -196,6 +198,7 @@ export class PlatformService {
     conn.platformAccountId = undefined;
     conn.phoneNumber = undefined;
     conn.handle = undefined;
+    conn.channelId = undefined;
 
     await this.connRepo.save(conn);
   }
@@ -446,6 +449,42 @@ export class PlatformService {
     await this.connRepo.save(conn);
   }
 
+  /** Refresh a Meta (Facebook/Instagram) long-lived token before it expires (~60 days) */
+  private async refreshMetaToken(conn: PlatformConnection): Promise<void> {
+    const appId = process.env.META_APP_ID || '';
+    const appSecret = process.env.META_APP_SECRET || '';
+
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/oauth/access_token?` +
+        new URLSearchParams({
+          grant_type: 'fb_exchange_token',
+          client_id: appId,
+          client_secret: appSecret,
+          fb_exchange_token: conn.accessToken!,
+        }),
+    );
+    const data = await res.json() as any;
+
+    if (!data.access_token) {
+      throw new BadRequestException(
+        `${conn.platform} session expired. Reconnect ${conn.platform} in Settings.`,
+      );
+    }
+
+    conn.accessToken = data.access_token;
+    conn.tokenExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+    await this.connRepo.save(conn);
+  }
+
+  /** Ensure Meta token is still valid; refresh if expiring within 7 days */
+  private async ensureMetaToken(conn: PlatformConnection): Promise<void> {
+    if (!conn.tokenExpiresAt) return;
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    if (conn.tokenExpiresAt.getTime() - Date.now() < sevenDays) {
+      await this.refreshMetaToken(conn);
+    }
+  }
+
   /** Post a tweet via X API v2 */
   private async publishToTwitter(
     conn: PlatformConnection,
@@ -496,6 +535,7 @@ export class PlatformService {
     content: string,
     imageUrl?: string,
   ): Promise<{ platformPostId?: string }> {
+    await this.ensureMetaToken(conn);
     const pageId = conn.platformAccountId;
     if (!pageId) throw new BadRequestException('Facebook page not found. Reconnect Facebook in Settings.');
 
@@ -555,6 +595,7 @@ export class PlatformService {
     caption: string,
     imageUrl: string,
   ): Promise<{ platformPostId?: string }> {
+    await this.ensureMetaToken(conn);
     const igAccountId = conn.platformAccountId;
     if (!igAccountId) {
       throw new BadRequestException('Instagram Business account not found. Reconnect Instagram in Settings.');
@@ -656,7 +697,8 @@ export class PlatformService {
 
   /**
    * WhatsApp: Send a message via WhatsApp Business Cloud API.
-   * Sends to the business's own phone number (test mode) or a broadcast list.
+   * If a channelId is configured, publishes to the WhatsApp Channel (broadcast).
+   * Otherwise sends to the business's own phone number (test mode).
    * Supports text messages and image messages with captions.
    */
   private async publishToWhatsApp(
@@ -673,6 +715,12 @@ export class PlatformService {
       );
     }
 
+    // ── WhatsApp Channel publishing ──────────────────────
+    if (conn.channelId) {
+      return this.publishToWhatsAppChannel(conn, content, imageUrl);
+    }
+
+    // ── Direct message (test mode / single recipient) ────
     const recipientPhone = conn.phoneNumber;
     if (!recipientPhone) {
       throw new BadRequestException(
@@ -747,6 +795,86 @@ export class PlatformService {
     if (!res.ok || data.error) {
       throw new BadRequestException(
         `WhatsApp publish failed: ${data.error?.message || 'Unknown error'}`,
+      );
+    }
+
+    return { platformPostId: data.messages?.[0]?.id };
+  }
+
+  /**
+   * Publish content to a WhatsApp Channel via the Channels API.
+   * WhatsApp Channels are broadcast-only (one-to-many), no "to" field needed.
+   */
+  private async publishToWhatsAppChannel(
+    conn: PlatformConnection,
+    content: string,
+    imageUrl?: string,
+  ): Promise<{ platformPostId?: string }> {
+    const accessToken = conn.accessToken!;
+    const channelId = conn.channelId!;
+
+    let messagePayload: Record<string, unknown>;
+
+    if (imageUrl && imageUrl.startsWith('data:image/')) {
+      // Upload base64 image via media API first
+      const parsed = this.parseBase64Image(imageUrl);
+      if (!parsed) throw new BadRequestException('Invalid image format');
+
+      const formData = new FormData();
+      formData.append('file', new Blob([parsed.buffer], { type: parsed.mimeType }), `image.${parsed.ext}`);
+      formData.append('messaging_product', 'whatsapp');
+      formData.append('type', parsed.mimeType);
+
+      const uploadRes = await fetch(
+        `https://graph.facebook.com/v21.0/${conn.platformAccountId}/media`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        },
+      );
+      const uploadData = await uploadRes.json() as any;
+      if (!uploadData.id) {
+        throw new BadRequestException(
+          `WhatsApp media upload failed: ${uploadData.error?.message || 'Unknown error'}`,
+        );
+      }
+
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        type: 'image',
+        image: { id: uploadData.id, caption: content },
+      };
+    } else if (imageUrl) {
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        type: 'image',
+        image: { link: imageUrl, caption: content },
+      };
+    } else {
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        type: 'text',
+        text: { body: content },
+      };
+    }
+
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${channelId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messagePayload),
+      },
+    );
+    const data = (await res.json()) as any;
+
+    if (!res.ok || data.error) {
+      throw new BadRequestException(
+        `WhatsApp Channel publish failed: ${data.error?.message || 'Unknown error'}`,
       );
     }
 

@@ -105,11 +105,12 @@ export default function SettingsPage() {
   });
 
   // Platform connections (from backend)
-  const [connections, setConnections] = useState<Record<string, { connected: boolean; handle: string }>>({});
+  const [connections, setConnections] = useState<Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string }>>({});
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState("");
   const [whatsappAccessToken, setWhatsappAccessToken] = useState("");
   const [whatsappDisplayPhone, setWhatsappDisplayPhone] = useState("");
+  const [whatsappChannelId, setWhatsappChannelId] = useState("");
   const [showWhatsappInput, setShowWhatsappInput] = useState(false);
 
   // Team / Org state
@@ -237,9 +238,9 @@ export default function SettingsPage() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      const map: Record<string, { connected: boolean; handle: string }> = {};
+      const map: Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string }> = {};
       for (const conn of data) {
-        map[conn.platform] = { connected: conn.connected, handle: conn.handle || "" };
+        map[conn.platform] = { connected: conn.connected, handle: conn.handle || "", channelId: conn.channelId, tokenExpiresAt: conn.tokenExpiresAt };
       }
       setConnections(map);
     } catch {
@@ -279,6 +280,7 @@ export default function SettingsPage() {
             phoneNumberId: whatsappPhoneNumberId.trim(),
             accessToken: whatsappAccessToken.trim(),
             phoneNumber: whatsappDisplayPhone.trim() || undefined,
+            channelId: whatsappChannelId.trim() || undefined,
           }),
         });
         if (!res.ok) {
@@ -290,6 +292,7 @@ export default function SettingsPage() {
         setWhatsappPhoneNumberId("");
         setWhatsappAccessToken("");
         setWhatsappDisplayPhone("");
+        setWhatsappChannelId("");
         await loadPlatformData();
         setPlatformLoading(null);
         return;
@@ -736,6 +739,24 @@ export default function SettingsPage() {
                           ? "Enter your WhatsApp Business API credentials"
                           : "Not connected"}
                     </div>
+                    {/* Token status & channel info */}
+                    {conn?.connected && conn.tokenExpiresAt && (
+                      <div style={{ fontSize: "0.75rem", color: new Date(conn.tokenExpiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? "#ef4444" : "#94a3b8", marginTop: 2 }}>
+                        Token expires {new Date(conn.tokenExpiresAt).toLocaleDateString()}
+                        {new Date(conn.tokenExpiresAt) < new Date() && " ⚠️ Expired — reconnect needed"}
+                        {new Date(conn.tokenExpiresAt) >= new Date() && new Date(conn.tokenExpiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) && " ⚠️ Expiring soon"}
+                      </div>
+                    )}
+                    {conn?.connected && p.name === "WhatsApp" && conn.channelId && (
+                      <div style={{ fontSize: "0.75rem", color: "#25D366", marginTop: 2 }}>
+                        📢 Broadcasting to Channel
+                      </div>
+                    )}
+                    {conn?.connected && p.name === "WhatsApp" && !conn.channelId && (
+                      <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 2 }}>
+                        Direct message mode (no Channel configured)
+                      </div>
+                    )}
                     {/* WhatsApp Business API input */}
                     {p.name === "WhatsApp" && showWhatsappInput && !conn?.connected && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8, maxWidth: 420 }}>
@@ -775,6 +796,20 @@ export default function SettingsPage() {
                             width: "100%",
                           }}
                         />
+                        <input
+                          type="text"
+                          placeholder="WhatsApp Channel ID (optional, for broadcast)"
+                          value={whatsappChannelId}
+                          onChange={(e) => setWhatsappChannelId(e.target.value)}
+                          style={{
+                            padding: "8px 12px", borderRadius: 8,
+                            border: "1.5px solid #e2e8f0", fontSize: "0.88rem",
+                            width: "100%",
+                          }}
+                        />
+                        <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "-4px 0 0 0" }}>
+                          If set, posts will be broadcast to your WhatsApp Channel instead of a single number.
+                        </p>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button
                             className={styles.btnConnect}
@@ -785,7 +820,7 @@ export default function SettingsPage() {
                           </button>
                           <button
                             className={styles.btnDisconnect}
-                            onClick={() => { setShowWhatsappInput(false); setWhatsappPhoneNumberId(""); setWhatsappAccessToken(""); setWhatsappDisplayPhone(""); }}
+                            onClick={() => { setShowWhatsappInput(false); setWhatsappPhoneNumberId(""); setWhatsappAccessToken(""); setWhatsappDisplayPhone(""); setWhatsappChannelId(""); }}
                           >
                             Cancel
                           </button>
