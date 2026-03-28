@@ -8,16 +8,16 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
+| Layer        | Technology                                               |
+| ------------ | -------------------------------------------------------- |
 | **Frontend** | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| **Backend** | NestJS 11, TypeScript |
-| **Auth** | Clerk (Organizations, RBAC) |
-| **Database** | PostgreSQL 15 (Docker), TypeORM |
-| **Monorepo** | TurboRepo, pnpm workspaces |
-| **Styling** | CSS Modules |
-| **Icons** | react-icons (Font Awesome 6) |
-| **Runtime** | Node.js v24 |
+| **Backend**  | NestJS 11, TypeScript                                    |
+| **Auth**     | Clerk (Organizations, RBAC)                              |
+| **Database** | PostgreSQL 15 (Docker), TypeORM                          |
+| **Monorepo** | TurboRepo, pnpm workspaces                               |
+| **Styling**  | CSS Modules                                              |
+| **Icons**    | react-icons (Font Awesome 6)                             |
+| **Runtime**  | Node.js v24                                              |
 
 ---
 
@@ -50,6 +50,7 @@ faithreach/
 **Landing Page** — Split-panel design with branded sign-in/sign-up CTAs.
 
 **Authentication** — Fully integrated Clerk auth pages (not external redirects):
+
 - `/sign-in` and `/sign-up` with custom branded styling
 - Route protection via Clerk middleware
 - Organization-aware sessions
@@ -59,6 +60,7 @@ faithreach/
 **Profile Page** — User profile management at `/profile` with CSS Modules styling.
 
 **Settings Page** (`/settings`) — Tabbed interface with 5 sections:
+
 - **Profile** — Edit display name, bio, and avatar
 - **Team** — Clerk Organizations UI with invite flow, member list, and role management
 - **Platforms** — Connect/disconnect social accounts (admin-only controls)
@@ -66,11 +68,13 @@ faithreach/
 - **Billing** — Subscription management (placeholder)
 
 **Layout** — Collapsible sidebar navigation with:
+
 - Dashboard, Posts, Planner, Scheduler, Analytics, Settings links
 - User menu with profile dropdown
 - Auto-hidden on landing page
 
 **API Proxy Routes** — Next.js API routes that proxy to backend services:
+
 - `/api/user/me` — User service proxy
 - `/api/platforms/[orgId]/*` — Platform integration proxy (connect, callback, disconnect)
 
@@ -82,15 +86,16 @@ faithreach/
 
 Fully implemented OAuth connection management:
 
-| Platform | Auth Method | Status |
-|---|---|---|
-| Instagram | Meta OAuth (Graph API v21.0) | Connected |
-| Facebook | Meta OAuth (Graph API v21.0) | Connected |
-| X (Twitter) | OAuth 2.0 PKCE | Connected |
-| YouTube | Google OAuth 2.0 | Connected (requires test user in Google Console) |
-| WhatsApp | Phone number | Connected |
+| Platform    | Auth Method                  | Status                                           |
+| ----------- | ---------------------------- | ------------------------------------------------ |
+| Instagram   | Meta OAuth (Graph API v21.0) | Connected                                        |
+| Facebook    | Meta OAuth (Graph API v21.0) | Connected                                        |
+| X (Twitter) | OAuth 2.0 PKCE               | Connected                                        |
+| YouTube     | Google OAuth 2.0             | Connected (requires test user in Google Console) |
+| WhatsApp    | Phone number                 | Connected                                        |
 
 **Key components:**
+
 - `PlatformConnection` entity — TypeORM entity storing OAuth tokens, handles, and connection state per organization
 - `PlatformService` — OAuth URL generation, token exchange (Meta, Twitter PKCE, Google), WhatsApp phone connection, disconnect logic
 - `PlatformController` — REST endpoints: list connections, initiate OAuth, handle callback, disconnect
@@ -106,6 +111,7 @@ Clerk webhook handling and JWT verification.
 #### Other Services (Boilerplate)
 
 The following services are scaffolded with NestJS but not yet implemented:
+
 - **Post** — Post creation, editing, scheduling, drafts
 - **Scheduler** — Scheduling and optimal time suggestions
 - **Content Planner** — Content planning, series, themes
@@ -159,6 +165,7 @@ docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_pl
 ### 3. Environment Variables
 
 **Frontend** (`frontend/.env.local`):
+
 ```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
@@ -169,6 +176,7 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
 ```
 
 **Platform Integration** (`services/platform-integration/.env`):
+
 ```env
 CLERK_SECRET_KEY=sk_test_...
 FRONTEND_URL=http://localhost:3000
@@ -205,30 +213,30 @@ pnpm dev:profile   # frontend + user service only
 
 ## Service Ports
 
-| Service | Port |
-|---|---|
-| Frontend | 3000 |
-| Auth | 3001 |
-| User | 3002 |
-| Post | 3003 |
-| Scheduler | 3004 |
-| Content Planner | 3005 |
-| Analytics | 3006 |
-| AI Assistant | 3007 |
-| Notification | 3008 |
+| Service              | Port |
+| -------------------- | ---- |
+| Frontend             | 3000 |
+| Auth                 | 3001 |
+| User                 | 3002 |
+| Post                 | 3003 |
+| Scheduler            | 3004 |
+| Content Planner      | 3005 |
+| Analytics            | 3006 |
+| AI Assistant         | 3007 |
+| Notification         | 3008 |
 | Platform Integration | 3009 |
-| Billing | 3010 |
+| Billing              | 3010 |
 
 ---
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `pnpm dev` | Run all services + frontend in dev mode |
-| `pnpm dev:profile` | Run frontend + user service only |
-| `pnpm build` | Build all packages |
-| `pnpm lint` | Lint all packages |
+| Command            | Description                             |
+| ------------------ | --------------------------------------- |
+| `pnpm dev`         | Run all services + frontend in dev mode |
+| `pnpm dev:profile` | Run frontend + user service only        |
+| `pnpm build`       | Build all packages                      |
+| `pnpm lint`        | Lint all packages                       |
 
 ---
 

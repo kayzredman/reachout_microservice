@@ -6,46 +6,80 @@ import {
   Param,
   Put,
   Delete,
-  NotFoundException,
+  Req,
+  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { PostService } from './post.service';
-import type { Post as PostType } from '../../../shared';
+import { ClerkAuthGuard } from './clerk-auth.guard';
 
 @Controller('posts')
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
-  @Get()
-  findAll(): PostType[] {
-    return this.postService.findAll();
+  /** GET /posts/:orgId — List all posts for an organization */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId')
+  async findAll(@Param('orgId') orgId: string) {
+    return this.postService.findAll(orgId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string): PostType {
-    const post = this.postService.findOne(id);
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-    return post;
+  /** GET /posts/:orgId/:id — Get a single post */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId/:id')
+  async findOne(@Param('orgId') orgId: string, @Param('id') id: string) {
+    return this.postService.findOne(orgId, id);
   }
 
-  @HttpPost()
-  create(
-    @Body() post: Omit<PostType, 'id' | 'createdAt' | 'updatedAt'>,
-  ): PostType {
-    return this.postService.create(post);
+  /** POST /posts/:orgId — Create a new post */
+  @UseGuards(ClerkAuthGuard)
+  @HttpPost(':orgId')
+  async create(
+    @Param('orgId') orgId: string,
+    @Body() body: { content: string; imageUrl?: string; platforms: string[] },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.sub;
+    if (!userId) throw new BadRequestException('Missing user');
+
+    return this.postService.create({
+      organizationId: orgId,
+      createdBy: userId,
+      content: body.content,
+      imageUrl: body.imageUrl,
+      platforms: body.platforms,
+    });
   }
 
-  @Put(':id')
-  update(
+  /** PUT /posts/:orgId/:id — Update a draft post */
+  @UseGuards(ClerkAuthGuard)
+  @Put(':orgId/:id')
+  async update(
+    @Param('orgId') orgId: string,
     @Param('id') id: string,
-    @Body() post: Partial<PostType>,
-  ): PostType | undefined {
-    return this.postService.update(id, post);
+    @Body() body: Partial<{ content: string; imageUrl: string; platforms: string[] }>,
+  ) {
+    return this.postService.update(orgId, id, body);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string): boolean {
-    return this.postService.remove(id);
+  /** DELETE /posts/:orgId/:id — Delete a post */
+  @UseGuards(ClerkAuthGuard)
+  @Delete(':orgId/:id')
+  async remove(@Param('orgId') orgId: string, @Param('id') id: string) {
+    await this.postService.remove(orgId, id);
+    return { deleted: true };
+  }
+
+  /** POST /posts/:orgId/:id/publish — Publish a post to platforms */
+  @UseGuards(ClerkAuthGuard)
+  @HttpPost(':orgId/:id/publish')
+  async publish(
+    @Param('orgId') orgId: string,
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || '';
+    return this.postService.publish(orgId, id, token);
   }
 }

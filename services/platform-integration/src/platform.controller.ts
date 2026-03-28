@@ -46,19 +46,25 @@ export class PlatformController {
   @Post(':orgId/connect')
   async connect(
     @Param('orgId') orgId: string,
-    @Body() body: { platform: string; phoneNumber?: string },
+    @Body() body: { platform: string; phoneNumber?: string; phoneNumberId?: string; accessToken?: string },
     @Req() req: any,
   ) {
     const userId = req.user?.sub;
     if (!userId) throw new BadRequestException('Missing user');
 
-    const { platform, phoneNumber } = body;
+    const { platform, phoneNumber, phoneNumberId, accessToken } = body;
     if (!platform) throw new BadRequestException('Platform is required');
 
-    // WhatsApp: direct connection via phone number
+    // WhatsApp: direct connection via Business API credentials
     if (platform === 'WhatsApp') {
-      if (!phoneNumber) throw new BadRequestException('Phone number is required for WhatsApp');
-      const conn = await this.platformService.connectWhatsApp(orgId, phoneNumber, userId);
+      if (!phoneNumberId || !accessToken) {
+        throw new BadRequestException(
+          'WhatsApp Business Phone Number ID and Access Token are required',
+        );
+      }
+      const conn = await this.platformService.connectWhatsApp(
+        orgId, userId, phoneNumberId, accessToken, phoneNumber,
+      );
       return {
         connected: true,
         handle: conn.handle,
@@ -94,6 +100,24 @@ export class PlatformController {
       handle: conn.handle,
       platform: conn.platform,
     };
+  }
+
+  /**
+   * POST /platforms/:orgId/publish
+   * Publish content to a platform using stored OAuth tokens.
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Post(':orgId/publish')
+  async publish(
+    @Param('orgId') orgId: string,
+    @Body() body: { platform: string; content: string; imageUrl?: string },
+  ) {
+    const { platform, content, imageUrl } = body;
+    if (!platform || !content) {
+      throw new BadRequestException('Platform and content are required');
+    }
+    const result = await this.platformService.publishToplatform(orgId, platform, content, imageUrl);
+    return { published: true, platform, ...result };
   }
 
   /**

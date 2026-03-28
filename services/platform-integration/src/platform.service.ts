@@ -10,11 +10,11 @@ const OAUTH_PLATFORMS = ['Instagram', 'Facebook', 'X (Twitter)', 'YouTube'];
 const OAUTH_CONFIG: Record<string, { authUrl: string; scopes: string }> = {
   Instagram: {
     authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',
-    scopes: 'public_profile,pages_show_list',
+    scopes: 'public_profile,pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish',
   },
   Facebook: {
     authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',
-    scopes: 'pages_show_list,pages_read_engagement',
+    scopes: 'public_profile,pages_show_list,pages_read_engagement,pages_manage_posts',
   },
   'X (Twitter)': {
     authUrl: 'https://x.com/i/oauth2/authorize',
@@ -130,16 +130,38 @@ export class PlatformService {
   }
 
   /**
-   * Connect WhatsApp via phone number (no OAuth redirect).
+   * Connect WhatsApp via WhatsApp Business Cloud API credentials.
+   * Requires a Phone Number ID and Access Token from Meta Business Suite.
+   * Optionally accepts the display phone number.
    */
   async connectWhatsApp(
     organizationId: string,
-    phoneNumber: string,
     connectedBy: string,
+    phoneNumberId: string,
+    accessToken: string,
+    phoneNumber?: string,
   ): Promise<PlatformConnection> {
-    // Validate phone number format
-    const cleaned = phoneNumber.replace(/[^0-9+]/g, '');
-    if (cleaned.length < 10) throw new BadRequestException('Invalid phone number');
+    if (!phoneNumberId || !accessToken) {
+      throw new BadRequestException(
+        'WhatsApp Business Phone Number ID and Access Token are required',
+      );
+    }
+
+    // Validate the credentials by calling the WhatsApp Cloud API
+    const verifyRes = await fetch(
+      `https://graph.facebook.com/v21.0/${phoneNumberId}?fields=verified_name,display_phone_number`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    const verifyData = (await verifyRes.json()) as any;
+
+    if (!verifyRes.ok || verifyData.error) {
+      throw new BadRequestException(
+        `Invalid WhatsApp credentials: ${verifyData.error?.message || 'Could not verify Phone Number ID'}`,
+      );
+    }
+
+    const displayName = verifyData.verified_name || '';
+    const displayPhone = verifyData.display_phone_number || phoneNumber || '';
 
     let conn = await this.connRepo.findOne({
       where: { organizationId, platform: 'WhatsApp' },
@@ -153,8 +175,10 @@ export class PlatformService {
     }
 
     conn.connected = true;
-    conn.phoneNumber = cleaned;
-    conn.handle = cleaned;
+    conn.platformAccountId = phoneNumberId;
+    conn.accessToken = accessToken;
+    conn.phoneNumber = displayPhone;
+    conn.handle = displayName || displayPhone;
     conn.connectedBy = connectedBy;
 
     return this.connRepo.save(conn);
@@ -354,5 +378,378 @@ export class PlatformService {
       handle: channel?.snippet?.title || '',
       accountId: channel?.id,
     };
+  }
+
+  // ── Publishing ────────────────────────────────────────
+
+  /**
+   * Publish content to a specific platform using stored OAuth tokens.
+   * Returns the platform-specific post ID on success.
+   */
+  async publishToplatform(
+    organizationId: string,
+    platform: string,
+    content: string,
+    imageUrl?: string,
+  ): Promise<{ platformPostId?: string }> {
+    const conn = await this.connRepo.findOne({ where: { organizationId, platform } });
+    if (!conn || !conn.connected) {
+      throw new BadRequestException(`${platform} is not connected. Connect it in Settings first.`);
+    }
+
+    if (platform === 'X (Twitter)') {
+      return this.publishToTwitter(conn, content);
+    }
+    if (platform === 'Facebook') {
+      return this.publishToFacebook(conn, content, imageUrl);
+    }
+    if (platform === 'Instagram') {
+      if (!imageUrl) throw new BadRequestException('Instagram requires an image');
+      return this.publishToInstagram(conn, content, imageUrl);
+    }
+    if (platform === 'WhatsApp') {
+      return this.publishToWhatsApp(conn, content, imageUrl);
+    }
+    throw new BadRequestException(`Publishing to ${platform} is not supported yet`);
+  }
+
+  /** Refresh an expired Twitter OAuth2 access token */
+  private async refreshTwitterToken(conn: PlatformConnection): Promise<void> {
+    if (!conn.refreshToken) {
+      throw new BadRequestException('Twitter session expired. Reconnect X (Twitter) in Settings.');
+    }
+
+    const clientId = process.env.TWITTER_CLIENT_ID || '';
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET || '';
+
+    const res = await fetch('https://api.x.com/2/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: conn.refreshToken,
+        client_id: clientId,
+      }),
+    });
+    const data = await res.json() as any;
+
+    if (!data.access_token) {
+      throw new BadRequestException('Twitter session expired. Reconnect X (Twitter) in Settings.');
+    }
+
+    conn.accessToken = data.access_token;
+    conn.refreshToken = data.refresh_token || conn.refreshToken;
+    conn.tokenExpiresAt = new Date(Date.now() + (data.expires_in || 7200) * 1000);
+    await this.connRepo.save(conn);
+  }
+
+  /** Post a tweet via X API v2 */
+  private async publishToTwitter(
+    conn: PlatformConnection,
+    content: string,
+  ): Promise<{ platformPostId?: string }> {
+    // Refresh token if expired
+    if (conn.tokenExpiresAt && conn.tokenExpiresAt < new Date()) {
+      await this.refreshTwitterToken(conn);
+    }
+
+    // Truncate to 280 chars for Twitter
+    const text = content.length > 280 ? content.slice(0, 277) + '...' : content;
+
+    const res = await fetch('https://api.x.com/2/tweets', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${conn.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json() as any;
+
+    if (!res.ok) {
+      throw new BadRequestException(
+        `Twitter publish failed: ${data.detail || data.title || 'Unknown error'}`,
+      );
+    }
+
+    return { platformPostId: data.data?.id };
+  }
+
+  /** Post to a Facebook Page feed */
+  /** Convert a base64 data URI to a Buffer and mime type */
+  private parseBase64Image(dataUri: string): { buffer: ArrayBuffer; mimeType: string; ext: string } | null {
+    const match = dataUri.match(/^data:(image\/(png|jpeg|jpg|gif|webp));base64,(.+)$/);
+    if (!match) return null;
+    const buf = Buffer.from(match[3], 'base64');
+    return {
+      buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+      mimeType: match[1],
+      ext: match[2] === 'jpeg' || match[2] === 'jpg' ? 'jpg' : match[2],
+    };
+  }
+
+  private async publishToFacebook(
+    conn: PlatformConnection,
+    content: string,
+    imageUrl?: string,
+  ): Promise<{ platformPostId?: string }> {
+    const pageId = conn.platformAccountId;
+    if (!pageId) throw new BadRequestException('Facebook page not found. Reconnect Facebook in Settings.');
+
+    // Get page access token
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${conn.accessToken}`,
+    );
+    const pageData = await pagesRes.json() as any;
+    const pageToken = pageData.access_token || conn.accessToken;
+
+    let res: Response;
+
+    if (imageUrl && imageUrl.startsWith('data:image/')) {
+      // Base64 image — upload via multipart form data
+      const parsed = this.parseBase64Image(imageUrl);
+      if (!parsed) throw new BadRequestException('Invalid image format');
+
+      const formData = new FormData();
+      formData.append('source', new Blob([parsed.buffer], { type: parsed.mimeType }), `image.${parsed.ext}`);
+      formData.append('caption', content);
+      formData.append('access_token', pageToken);
+
+      res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+        method: 'POST',
+        body: formData,
+      });
+    } else if (imageUrl) {
+      // Regular URL
+      res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: imageUrl, caption: content, access_token: pageToken }),
+      });
+    } else {
+      // Text-only post
+      res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: content, access_token: pageToken }),
+      });
+    }
+
+    const data = await res.json() as any;
+
+    if (!res.ok) {
+      throw new BadRequestException(
+        `Facebook publish failed: ${data.error?.message || 'Unknown error'}`,
+      );
+    }
+
+    return { platformPostId: data.id || data.post_id };
+  }
+
+  /** Post an image + caption to Instagram via Graph API content publishing */
+  private async publishToInstagram(
+    conn: PlatformConnection,
+    caption: string,
+    imageUrl: string,
+  ): Promise<{ platformPostId?: string }> {
+    const igAccountId = conn.platformAccountId;
+    if (!igAccountId) {
+      throw new BadRequestException('Instagram Business account not found. Reconnect Instagram in Settings.');
+    }
+
+    let publicImageUrl = imageUrl;
+
+    // If the image is base64, upload it to Facebook first to get a public URL
+    if (imageUrl.startsWith('data:image/')) {
+      const parsed = this.parseBase64Image(imageUrl);
+      if (!parsed) throw new BadRequestException('Invalid image format');
+
+      // Upload as unpublished photo to the user's Facebook page to get a public URL
+      // First, find a connected Facebook page to host the image
+      const fbConn = await this.connRepo.findOne({
+        where: { organizationId: conn.organizationId, platform: 'Facebook' },
+      });
+
+      if (fbConn?.platformAccountId) {
+        // Get page token
+        const ptRes = await fetch(
+          `https://graph.facebook.com/v21.0/${fbConn.platformAccountId}?fields=access_token&access_token=${fbConn.accessToken}`,
+        );
+        const ptData = await ptRes.json() as any;
+        const pageToken = ptData.access_token || fbConn.accessToken;
+
+        // Upload as unpublished photo
+        const formData = new FormData();
+        formData.append('source', new Blob([parsed.buffer], { type: parsed.mimeType }), `image.${parsed.ext}`);
+        formData.append('published', 'false');
+        formData.append('access_token', pageToken);
+
+        const uploadRes = await fetch(
+          `https://graph.facebook.com/v21.0/${fbConn.platformAccountId}/photos`,
+          { method: 'POST', body: formData },
+        );
+        const uploadData = await uploadRes.json() as any;
+
+        if (uploadData.id) {
+          // Get the public URL of the uploaded photo
+          const photoRes = await fetch(
+            `https://graph.facebook.com/v21.0/${uploadData.id}?fields=images&access_token=${pageToken}`,
+          );
+          const photoData = await photoRes.json() as any;
+          publicImageUrl = photoData.images?.[0]?.source || '';
+        }
+      }
+
+      if (!publicImageUrl || publicImageUrl.startsWith('data:')) {
+        throw new BadRequestException(
+          'Instagram requires a publicly accessible image URL. Connect Facebook first to enable image hosting.',
+        );
+      }
+    }
+
+    // Step 1: Create a media container
+    const containerRes = await fetch(
+      `https://graph.facebook.com/v21.0/${igAccountId}/media`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: publicImageUrl,
+          caption,
+          access_token: conn.accessToken,
+        }),
+      },
+    );
+    const containerData = await containerRes.json() as any;
+
+    if (!containerData.id) {
+      throw new BadRequestException(
+        `Instagram container creation failed: ${containerData.error?.message || 'Unknown error'}`,
+      );
+    }
+
+    // Step 2: Publish the container
+    const publishRes = await fetch(
+      `https://graph.facebook.com/v21.0/${igAccountId}/media_publish`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creation_id: containerData.id,
+          access_token: conn.accessToken,
+        }),
+      },
+    );
+    const publishData = await publishRes.json() as any;
+
+    if (!publishData.id) {
+      throw new BadRequestException(
+        `Instagram publish failed: ${publishData.error?.message || 'Unknown error'}`,
+      );
+    }
+
+    return { platformPostId: publishData.id };
+  }
+
+  /**
+   * WhatsApp: Send a message via WhatsApp Business Cloud API.
+   * Sends to the business's own phone number (test mode) or a broadcast list.
+   * Supports text messages and image messages with captions.
+   */
+  private async publishToWhatsApp(
+    conn: PlatformConnection,
+    content: string,
+    imageUrl?: string,
+  ): Promise<{ platformPostId?: string }> {
+    const phoneNumberId = conn.platformAccountId;
+    const accessToken = conn.accessToken;
+
+    if (!phoneNumberId || !accessToken) {
+      throw new BadRequestException(
+        'WhatsApp Business API credentials are missing. Go to Settings → Platforms and reconnect WhatsApp with your Phone Number ID and Access Token from Meta Business Suite.',
+      );
+    }
+
+    const recipientPhone = conn.phoneNumber;
+    if (!recipientPhone) {
+      throw new BadRequestException(
+        'No recipient phone number configured. Reconnect WhatsApp in Settings.',
+      );
+    }
+
+    let messagePayload: Record<string, unknown>;
+
+    if (imageUrl && imageUrl.startsWith('data:image/')) {
+      // Base64 image — upload via WhatsApp Media API first
+      const parsed = this.parseBase64Image(imageUrl);
+      if (!parsed) throw new BadRequestException('Invalid image format');
+
+      const formData = new FormData();
+      formData.append('file', new Blob([parsed.buffer], { type: parsed.mimeType }), `image.${parsed.ext}`);
+      formData.append('messaging_product', 'whatsapp');
+      formData.append('type', parsed.mimeType);
+
+      const uploadRes = await fetch(
+        `https://graph.facebook.com/v21.0/${phoneNumberId}/media`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        },
+      );
+      const uploadData = await uploadRes.json() as any;
+
+      if (!uploadData.id) {
+        throw new BadRequestException(
+          `WhatsApp media upload failed: ${uploadData.error?.message || 'Unknown error'}`,
+        );
+      }
+
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'image',
+        image: { id: uploadData.id, caption: content },
+      };
+    } else if (imageUrl) {
+      // Public URL image
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'image',
+        image: { link: imageUrl, caption: content },
+      };
+    } else {
+      messagePayload = {
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'text',
+        text: { body: content },
+      };
+    }
+
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messagePayload),
+      },
+    );
+    const data = (await res.json()) as any;
+
+    if (!res.ok || data.error) {
+      throw new BadRequestException(
+        `WhatsApp publish failed: ${data.error?.message || 'Unknown error'}`,
+      );
+    }
+
+    return { platformPostId: data.messages?.[0]?.id };
   }
 }

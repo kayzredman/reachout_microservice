@@ -1,46 +1,175 @@
-import { Injectable } from '@nestjs/common';
-import { Post } from '../../../shared';
-import { randomUUID } from 'crypto';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PostEntity } from './post.entity';
+
+/** Platforms that require an image */
+const IMAGE_REQUIRED_PLATFORMS = ['Instagram'];
+/** Platforms that optionally support images */
+const IMAGE_OPTIONAL_PLATFORMS = ['Facebook'];
+/** Text-only platforms */
+const TEXT_ONLY_PLATFORMS = ['X (Twitter)', 'WhatsApp'];
 
 @Injectable()
 export class PostService {
-  private posts: Post[] = [];
+  constructor(
+    @InjectRepository(PostEntity)
+    private postRepo: Repository<PostEntity>,
+  ) {}
 
-  findAll(): Post[] {
-    return this.posts;
+  /** List all posts for an organization, newest first */
+  async findAll(organizationId: string): Promise<PostEntity[]> {
+    return this.postRepo.find({
+      where: { organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  findOne(id: string): Post | undefined {
-    return this.posts.find((p) => p.id === id);
+  /** Get a single post */
+  async findOne(organizationId: string, id: string): Promise<PostEntity> {
+    const post = await this.postRepo.findOne({ where: { id, organizationId } });
+    if (!post) throw new NotFoundException('Post not found');
+    return post;
   }
 
-  create(post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>): Post {
-    const now = new Date().toISOString();
-    const newPost: Post = {
-      ...post,
-      id: randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.posts.push(newPost);
-    return newPost;
+  /** Create a new post (draft or ready to publish) */
+  async create(data: {
+    organizationId: string;
+    createdBy: string;
+    content: string;
+    imageUrl?: string;
+    platforms: string[];
+  }): Promise<PostEntity> {
+    // Validate: Instagram requires an image
+    if (data.platforms.includes('Instagram') && !data.imageUrl) {
+      throw new BadRequestException('Instagram posts require an image');
+    }
+
+    const post = this.postRepo.create({
+      organizationId: data.organizationId,
+      createdBy: data.createdBy,
+      content: data.content,
+      imageUrl: data.imageUrl,
+      platforms: data.platforms,
+      status: 'draft',
+      publishResults: [],
+    });
+
+    return this.postRepo.save(post);
   }
 
-  update(id: string, post: Partial<Post>): Post | undefined {
-    const idx = this.posts.findIndex((p) => p.id === id);
-    if (idx === -1) return undefined;
-    this.posts[idx] = {
-      ...this.posts[idx],
-      ...post,
-      updatedAt: new Date().toISOString(),
-    };
-    return this.posts[idx];
+  /** Update a draft post */
+  async update(
+    organizationId: string,
+    id: string,
+    data: Partial<{ content: string; imageUrl: string; platforms: string[] }>,
+  ): Promise<PostEntity> {
+    const post = await this.findOne(organizationId, id);
+    if (post.status !== 'draft') {
+      throw new BadRequestException('Only draft posts can be edited');
+    }
+    Object.assign(post, data);
+    return this.postRepo.save(post);
   }
 
-  remove(id: string): boolean {
-    const idx = this.posts.findIndex((p) => p.id === id);
-    if (idx === -1) return false;
-    this.posts.splice(idx, 1);
-    return true;
+  /** Delete a post */
+  async remove(organizationId: string, id: string): Promise<void> {
+    const post = await this.findOne(organizationId, id);
+    await this.postRepo.remove(post);
+  }
+
+  /**
+   * Publish a post to selected platforms.
+   * Calls the platform-integration service for each platform.
+   */
+  async publish(
+    organizationId: string,
+    id: string,
+    authToken: string,
+  ): Promise<PostEntity> {
+    const post = await this.findOne(organizationId, id);
+
+    if (post.status === 'published') {
+      throw new BadRequestException('Post is already published');
+    }
+
+    // Validate: Instagram requires an image
+    if (post.platforms.includes('Instagram') && !post.imageUrl) {
+      throw new BadRequestException('Instagram posts require an image. Add an image before publishing.');
+    }
+
+    post.status = 'publishing';
+    post.publishResults = post.platforms.map((p) => ({
+      platform: p,
+      status: 'pending' as const,
+    }));
+    await this.postRepo.save(post);
+
+    const platformServiceUrl = process.env.PLATFORM_SERVICE_URL || 'http://localhost:3009';
+
+    // Publish to each platform in parallel
+    const results = await Promise.allSettled(
+      post.platforms.map(async (platform) => {
+        const body: Record<string, string> = { platform, content: post.content };
+
+        // Attach image for platforms that support it
+        if (post.imageUrl && !TEXT_ONLY_PLATFORMS.includes(platform)) {
+          body.imageUrl = post.imageUrl;
+        }
+
+        const res = await fetch(`${platformServiceUrl}/platforms/${organizationId}/publish`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || data.error || 'Publish failed');
+        }
+        return { platform, data };
+      }),
+    );
+
+    // Map results back to the post
+    let allSucceeded = true;
+    let anySucceeded = false;
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const { platform, data } = result.value;
+        const pr = post.publishResults.find((r) => r.platform === platform);
+        if (pr) {
+          pr.status = 'published';
+          pr.platformPostId = data.platformPostId;
+        }
+        anySucceeded = true;
+      } else {
+        allSucceeded = false;
+        // Extract platform name from the error context
+        const errMsg = result.reason?.message || 'Unknown error';
+        // Find the first pending result and mark it failed
+        const pending = post.publishResults.find((r) => r.status === 'pending');
+        if (pending) {
+          pending.status = 'failed';
+          pending.error = errMsg;
+        }
+      }
+    }
+
+    post.status = allSucceeded
+      ? 'published'
+      : anySucceeded
+        ? 'partially_failed'
+        : 'failed';
+
+    if (anySucceeded) {
+      post.publishedAt = new Date();
+    }
+
+    return this.postRepo.save(post);
   }
 }
