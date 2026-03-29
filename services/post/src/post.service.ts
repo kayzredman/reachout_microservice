@@ -42,6 +42,8 @@ export class PostService {
     content: string;
     imageUrl?: string;
     platforms: string[];
+    broadcastMode?: 'direct' | 'broadcast';
+    broadcastId?: string;
   }): Promise<PostEntity> {
     // Validate: Instagram requires an image
     if (data.platforms.includes('Instagram') && !data.imageUrl) {
@@ -56,6 +58,8 @@ export class PostService {
       platforms: data.platforms,
       status: 'draft',
       publishResults: [],
+      broadcastMode: data.broadcastMode,
+      broadcastId: data.broadcastId,
     });
 
     return this.postRepo.save(post);
@@ -65,7 +69,7 @@ export class PostService {
   async update(
     organizationId: string,
     id: string,
-    data: Partial<{ content: string; imageUrl: string; platforms: string[] }>,
+    data: Partial<{ content: string; imageUrl: string; platforms: string[]; broadcastId: string }>,
   ): Promise<PostEntity> {
     const post = await this.findOne(organizationId, id);
     if (post.status !== 'draft') {
@@ -101,6 +105,10 @@ export class PostService {
       throw new BadRequestException('Instagram posts require an image. Add an image before publishing.');
     }
 
+    if (!post.platforms || post.platforms.length === 0) {
+      throw new BadRequestException('No platforms selected for publishing.');
+    }
+
     post.status = 'publishing';
     post.publishResults = post.platforms.map((p) => ({
       platform: p,
@@ -113,12 +121,21 @@ export class PostService {
     // Publish to each platform in parallel
     const results = await Promise.allSettled(
       post.platforms.map(async (platform) => {
+        // WhatsApp broadcast mode: the broadcast was already sent from the frontend
+        // via the /broadcast endpoint. Just record it as published.
+        if (platform === 'WhatsApp' && post.broadcastMode === 'broadcast' && post.broadcastId) {
+          return { platform, data: { platformPostId: `broadcast:${post.broadcastId}` } };
+        }
+
+        // Normal publish flow
         const body: Record<string, string> = { platform, content: post.content };
 
         // Attach image for platforms that support it
         if (post.imageUrl && !TEXT_ONLY_PLATFORMS.includes(platform)) {
           body.imageUrl = post.imageUrl;
         }
+
+        this.logger.log(`Publishing to ${platform} for org=${organizationId}`);
 
         const res = await fetch(`${platformServiceUrl}/platforms/${organizationId}/publish`, {
           method: 'POST',
@@ -129,36 +146,43 @@ export class PostService {
           body: JSON.stringify(body),
         });
 
-        const data = await res.json();
+        let data: Record<string, unknown>;
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error(`${platform}: Invalid response from platform service (status ${res.status})`);
+        }
+
         if (!res.ok) {
-          throw new Error(data.message || data.error || 'Publish failed');
+          const errMsg = (data.message as string) || (data.error as string) || 'Publish failed';
+          this.logger.warn(`Failed to publish to ${platform}: ${errMsg}`);
+          throw new Error(errMsg);
         }
         return { platform, data };
       }),
     );
 
-    // Map results back to the post
+    // Map results back to the post (use index to match platform correctly)
     let allSucceeded = true;
     let anySucceeded = false;
 
-    for (const result of results) {
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const pr = post.publishResults[i];
+
       if (result.status === 'fulfilled') {
-        const { platform, data } = result.value;
-        const pr = post.publishResults.find((r) => r.platform === platform);
+        const { data } = result.value;
         if (pr) {
           pr.status = 'published';
-          pr.platformPostId = data.platformPostId;
+          pr.platformPostId = data.platformPostId as string;
         }
         anySucceeded = true;
       } else {
         allSucceeded = false;
-        // Extract platform name from the error context
         const errMsg = result.reason?.message || 'Unknown error';
-        // Find the first pending result and mark it failed
-        const pending = post.publishResults.find((r) => r.status === 'pending');
-        if (pending) {
-          pending.status = 'failed';
-          pending.error = errMsg;
+        if (pr) {
+          pr.status = 'failed';
+          pr.error = errMsg;
         }
       }
     }

@@ -60,6 +60,14 @@ export class PostEntity {
   @Column({ type: 'int', nullable: true })
   seriesNumber?: number;
 
+  /** Broadcast mode: 'direct' (default single send) or 'broadcast' (CSV broadcast) */
+  @Column({ type: 'varchar', nullable: true })
+  broadcastMode?: 'direct' | 'broadcast';
+
+  /** ID of the BroadcastLog (from platform-integration) when broadcastMode = 'broadcast' */
+  @Column({ type: 'uuid', nullable: true })
+  broadcastId?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

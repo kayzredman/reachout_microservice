@@ -767,6 +767,50 @@
   color: #dc2626;
 }
 
+/* WhatsApp sub-tab buttons */
+.waSubTab {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.15s;
+}
+
+.waSubTab:hover {
+  background: #e2e8f0;
+}
+
+.waSubTabActive {
+  background: #25D366;
+  color: #fff;
+}
+
+.waSubTabActive:hover {
+  background: #20bd5a;
+}
+
+/* Danger text button (Remove / Delete in lists) */
+.btnDangerText {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.btnDangerText:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .permissionsBox {
   background: #f8f9fb;
   border-radius: 12px;

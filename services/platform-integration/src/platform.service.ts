@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlatformConnection } from './platform-connection.entity.js';
+import { WhatsAppSessionService } from './whatsapp-session.service.js';
 
 /** Platforms that use OAuth (redirects to external login) */
 const OAUTH_PLATFORMS = ['Instagram', 'Facebook', 'X (Twitter)', 'YouTube'];
@@ -28,9 +29,12 @@ const OAUTH_CONFIG: Record<string, { authUrl: string; scopes: string }> = {
 
 @Injectable()
 export class PlatformService {
+  private readonly logger = new Logger(PlatformService.name);
+
   constructor(
     @InjectRepository(PlatformConnection)
     private connRepo: Repository<PlatformConnection>,
+    private sessionService: WhatsAppSessionService,
   ) {}
 
   /** Get all connections for an organization */
@@ -130,40 +134,15 @@ export class PlatformService {
   }
 
   /**
-   * Connect WhatsApp via WhatsApp Business Cloud API credentials.
-   * Requires a Phone Number ID and Access Token from Meta Business Suite.
-   * Optionally accepts the display phone number.
+   * Mark WhatsApp as connected after Baileys QR pairing succeeds.
+   * Called internally by WhatsAppSessionService once the socket opens.
    */
-  async connectWhatsApp(
+  async markWhatsAppConnected(
     organizationId: string,
     connectedBy: string,
-    phoneNumberId: string,
-    accessToken: string,
-    phoneNumber?: string,
-    channelId?: string,
+    phone: string,
+    pushName: string,
   ): Promise<PlatformConnection> {
-    if (!phoneNumberId || !accessToken) {
-      throw new BadRequestException(
-        'WhatsApp Business Phone Number ID and Access Token are required',
-      );
-    }
-
-    // Validate the credentials by calling the WhatsApp Cloud API
-    const verifyRes = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}?fields=verified_name,display_phone_number`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    );
-    const verifyData = (await verifyRes.json()) as any;
-
-    if (!verifyRes.ok || verifyData.error) {
-      throw new BadRequestException(
-        `Invalid WhatsApp credentials: ${verifyData.error?.message || 'Could not verify Phone Number ID'}`,
-      );
-    }
-
-    const displayName = verifyData.verified_name || '';
-    const displayPhone = verifyData.display_phone_number || phoneNumber || '';
-
     let conn = await this.connRepo.findOne({
       where: { organizationId, platform: 'WhatsApp' },
     });
@@ -176,12 +155,9 @@ export class PlatformService {
     }
 
     conn.connected = true;
-    conn.platformAccountId = phoneNumberId;
-    conn.accessToken = accessToken;
-    conn.phoneNumber = displayPhone;
-    conn.handle = displayName || displayPhone;
+    conn.phoneNumber = phone;
+    conn.handle = pushName || phone;
     conn.connectedBy = connectedBy;
-    conn.channelId = channelId || undefined;
 
     return this.connRepo.save(conn);
   }
@@ -190,6 +166,11 @@ export class PlatformService {
   async disconnect(organizationId: string, platform: string): Promise<void> {
     const conn = await this.connRepo.findOne({ where: { organizationId, platform } });
     if (!conn) throw new NotFoundException('Connection not found');
+
+    // For WhatsApp, also tear down the Baileys session
+    if (platform === 'WhatsApp') {
+      await this.sessionService.clearSession(organizationId);
+    }
 
     conn.connected = false;
     conn.accessToken = undefined;
@@ -696,188 +677,39 @@ export class PlatformService {
   }
 
   /**
-   * WhatsApp: Send a message via WhatsApp Business Cloud API.
-   * If a channelId is configured, publishes to the WhatsApp Channel (broadcast).
-   * Otherwise sends to the business's own phone number (test mode).
-   * Supports text messages and image messages with captions.
+   * WhatsApp: Send a text message via Baileys (user's own WhatsApp session).
+   * This is used for single-message publishing (e.g. post to own number).
+   * Broadcasting to many recipients is handled by BroadcastService.
    */
   private async publishToWhatsApp(
     conn: PlatformConnection,
     content: string,
-    imageUrl?: string,
+    _imageUrl?: string,
   ): Promise<{ platformPostId?: string }> {
-    const phoneNumberId = conn.platformAccountId;
-    const accessToken = conn.accessToken;
-
-    if (!phoneNumberId || !accessToken) {
+    const socket = this.sessionService.getSocket(conn.organizationId);
+    if (!socket) {
       throw new BadRequestException(
-        'WhatsApp Business API credentials are missing. Go to Settings → Platforms and reconnect WhatsApp with your Phone Number ID and Access Token from Meta Business Suite.',
+        'WhatsApp is not connected. Go to Settings → Platforms and scan the QR code to connect.',
       );
     }
 
-    // ── WhatsApp Channel publishing ──────────────────────
-    if (conn.channelId) {
-      return this.publishToWhatsAppChannel(conn, content, imageUrl);
-    }
-
-    // ── Direct message (test mode / single recipient) ────
-    const recipientPhone = conn.phoneNumber;
-    if (!recipientPhone) {
+    // Send to the connected number itself (test/preview)
+    const phone = conn.phoneNumber;
+    if (!phone) {
       throw new BadRequestException(
-        'No recipient phone number configured. Reconnect WhatsApp in Settings.',
+        'No phone number found for WhatsApp session. Reconnect in Settings.',
       );
     }
 
-    let messagePayload: Record<string, unknown>;
+    const jid = phone.replace(/[^\d]/g, '') + '@s.whatsapp.net';
 
-    if (imageUrl && imageUrl.startsWith('data:image/')) {
-      // Base64 image — upload via WhatsApp Media API first
-      const parsed = this.parseBase64Image(imageUrl);
-      if (!parsed) throw new BadRequestException('Invalid image format');
-
-      const formData = new FormData();
-      formData.append('file', new Blob([parsed.buffer], { type: parsed.mimeType }), `image.${parsed.ext}`);
-      formData.append('messaging_product', 'whatsapp');
-      formData.append('type', parsed.mimeType);
-
-      const uploadRes = await fetch(
-        `https://graph.facebook.com/v21.0/${phoneNumberId}/media`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: formData,
-        },
-      );
-      const uploadData = await uploadRes.json() as any;
-
-      if (!uploadData.id) {
-        throw new BadRequestException(
-          `WhatsApp media upload failed: ${uploadData.error?.message || 'Unknown error'}`,
-        );
-      }
-
-      messagePayload = {
-        messaging_product: 'whatsapp',
-        to: recipientPhone,
-        type: 'image',
-        image: { id: uploadData.id, caption: content },
-      };
-    } else if (imageUrl) {
-      // Public URL image
-      messagePayload = {
-        messaging_product: 'whatsapp',
-        to: recipientPhone,
-        type: 'image',
-        image: { link: imageUrl, caption: content },
-      };
-    } else {
-      messagePayload = {
-        messaging_product: 'whatsapp',
-        to: recipientPhone,
-        type: 'text',
-        text: { body: content },
-      };
+    try {
+      const sent = await socket.sendMessage(jid, { text: content });
+      return { platformPostId: sent?.key?.id || undefined };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown WhatsApp send error';
+      this.logger.error(`WhatsApp send failed for org=${conn.organizationId}: ${msg}`);
+      throw new BadRequestException(`WhatsApp send failed: ${msg}`);
     }
-
-    const res = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messagePayload),
-      },
-    );
-    const data = (await res.json()) as any;
-
-    if (!res.ok || data.error) {
-      throw new BadRequestException(
-        `WhatsApp publish failed: ${data.error?.message || 'Unknown error'}`,
-      );
-    }
-
-    return { platformPostId: data.messages?.[0]?.id };
-  }
-
-  /**
-   * Publish content to a WhatsApp Channel via the Channels API.
-   * WhatsApp Channels are broadcast-only (one-to-many), no "to" field needed.
-   */
-  private async publishToWhatsAppChannel(
-    conn: PlatformConnection,
-    content: string,
-    imageUrl?: string,
-  ): Promise<{ platformPostId?: string }> {
-    const accessToken = conn.accessToken!;
-    const channelId = conn.channelId!;
-
-    let messagePayload: Record<string, unknown>;
-
-    if (imageUrl && imageUrl.startsWith('data:image/')) {
-      // Upload base64 image via media API first
-      const parsed = this.parseBase64Image(imageUrl);
-      if (!parsed) throw new BadRequestException('Invalid image format');
-
-      const formData = new FormData();
-      formData.append('file', new Blob([parsed.buffer], { type: parsed.mimeType }), `image.${parsed.ext}`);
-      formData.append('messaging_product', 'whatsapp');
-      formData.append('type', parsed.mimeType);
-
-      const uploadRes = await fetch(
-        `https://graph.facebook.com/v21.0/${conn.platformAccountId}/media`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: formData,
-        },
-      );
-      const uploadData = await uploadRes.json() as any;
-      if (!uploadData.id) {
-        throw new BadRequestException(
-          `WhatsApp media upload failed: ${uploadData.error?.message || 'Unknown error'}`,
-        );
-      }
-
-      messagePayload = {
-        messaging_product: 'whatsapp',
-        type: 'image',
-        image: { id: uploadData.id, caption: content },
-      };
-    } else if (imageUrl) {
-      messagePayload = {
-        messaging_product: 'whatsapp',
-        type: 'image',
-        image: { link: imageUrl, caption: content },
-      };
-    } else {
-      messagePayload = {
-        messaging_product: 'whatsapp',
-        type: 'text',
-        text: { body: content },
-      };
-    }
-
-    const res = await fetch(
-      `https://graph.facebook.com/v21.0/${channelId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messagePayload),
-      },
-    );
-    const data = (await res.json()) as any;
-
-    if (!res.ok || data.error) {
-      throw new BadRequestException(
-        `WhatsApp Channel publish failed: ${data.error?.message || 'Unknown error'}`,
-      );
-    }
-
-    return { platformPostId: data.messages?.[0]?.id };
   }
 }

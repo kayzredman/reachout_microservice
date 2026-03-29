@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import {
@@ -165,7 +165,7 @@ function FacebookPreview({ content, handle, imageUrl }: { content: string; handl
   );
 }
 
-export default function PostPage() {
+function PostPage() {
   const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
@@ -209,6 +209,12 @@ export default function PostPage() {
 
   // Recent posts
   const [recentPosts, setRecentPosts] = useState<PostRecord[]>([]);
+
+  // WhatsApp broadcast state
+  const [broadcastMode, setBroadcastMode] = useState<"direct" | "broadcast">("direct");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvValidation, setCsvValidation] = useState<{ valid: number; skipped: number; phones: string[] } | null>(null);
+  const [csvValidating, setCsvValidating] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<{
@@ -325,6 +331,34 @@ export default function PostPage() {
     };
   }, [orgId, getToken]);
 
+  // Validate CSV when file is selected
+  useEffect(() => {
+    if (!csvFile || !orgId) return;
+    let cancelled = false;
+    setCsvValidating(true);
+
+    (async () => {
+      try {
+        const text = await csvFile.text();
+        const token = await getToken();
+        const res = await fetch(`/api/platforms/${orgId}/broadcast/validate`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ csv: text }),
+        });
+        if (!cancelled && res.ok) {
+          setCsvValidation(await res.json());
+        } else if (!cancelled) {
+          setCsvValidation(null);
+        }
+      } catch { if (!cancelled) setCsvValidation(null); }
+      finally { if (!cancelled) setCsvValidating(false); }
+    })();
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [csvFile, orgId, getToken]);
+
   // Read series context from query params
   useEffect(() => {
     const sId = searchParams.get("seriesId");
@@ -393,7 +427,9 @@ export default function PostPage() {
     content.trim().length > 0 &&
     selectedPlatforms.size > 0 &&
     (!needsImage || imageUrl.trim().length > 0) &&
-    !isOverLimit;
+    !isOverLimit &&
+    // If WhatsApp broadcast, CSV must be validated
+    !(selectedPlatforms.has("WhatsApp") && broadcastMode === "broadcast" && (!csvValidation || csvValidation.valid === 0));
 
   // Helper: link a newly created post to a series
   const linkPostToSeries = async (postId: string) => {
@@ -417,6 +453,9 @@ export default function PostPage() {
     setEditingPostId(null);
     setSeriesId(null);
     setSeriesTitle(null);
+    setBroadcastMode("direct");
+    setCsvFile(null);
+    setCsvValidation(null);
   };
 
   const togglePlatform = (key: PlatformKey) => {
@@ -475,17 +514,22 @@ export default function PostPage() {
         post = await updateRes.json();
       } else {
         // Create new post
+        const createBody: Record<string, unknown> = {
+          content,
+          imageUrl: finalImageUrl || undefined,
+          platforms: Array.from(selectedPlatforms),
+        };
+        // Add broadcast fields if applicable
+        if (selectedPlatforms.has("WhatsApp") && broadcastMode === "broadcast" && csvValidation) {
+          createBody.broadcastMode = "broadcast";
+        }
         const createRes = await fetch(`/api/posts/${orgId}`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            content,
-            imageUrl: finalImageUrl || undefined,
-            platforms: Array.from(selectedPlatforms),
-          }),
+          body: JSON.stringify(createBody),
         });
         if (!createRes.ok) {
           const err = await createRes.json();
@@ -499,13 +543,36 @@ export default function PostPage() {
         await linkPostToSeries(post.id);
       }
 
-      // 2. Publish it
+      // 2a. If WhatsApp broadcast, send the broadcast first
+      if (selectedPlatforms.has("WhatsApp") && broadcastMode === "broadcast" && csvValidation?.phones) {
+        const bcRes = await fetch(`/api/platforms/${orgId}/broadcast`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ message: content, phones: csvValidation.phones, postId: post.id }),
+        });
+        if (bcRes.ok) {
+          const bcData = await bcRes.json();
+          // Update post with broadcastId
+          await fetch(`/api/posts/${orgId}/${post.id}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ broadcastId: bcData.id }),
+          });
+        }
+      }
+
+      // 2b. Publish it
       const publishRes = await fetch(`/api/posts/${orgId}/${post.id}/publish`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const result = await publishRes.json();
+
+      if (!publishRes.ok) {
+        throw new Error(result.message || result.error || "Publishing failed");
+      }
+
       setPublishResults(result.publishResults || []);
 
       if (result.status === "published") {
@@ -766,6 +833,7 @@ export default function PostPage() {
             {loadingPlatforms ? (
               <p style={{ color: "#9ca3af", fontSize: 14 }}>Loading platforms...</p>
             ) : (
+              <>
               <div className={styles.platformRow}>
                 {platforms.map((p) => (
                   <label
@@ -797,6 +865,95 @@ export default function PostPage() {
                   </label>
                 ))}
               </div>
+
+              {/* WhatsApp Broadcast Toggle */}
+              {selectedPlatforms.has("WhatsApp") && (
+                <div style={{ marginTop: 16, padding: 16, background: "#f0fdf4", borderRadius: 12, border: "1.5px solid #bbf7d0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: broadcastMode === "broadcast" ? 14 : 0 }}>
+                    <FaWhatsapp style={{ color: "#25D366", fontSize: 18 }} />
+                    <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>WhatsApp Mode</span>
+                    <div style={{ display: "flex", gap: 4, marginLeft: "auto", background: "#e2e8f0", borderRadius: 8, padding: 2 }}>
+                      <button
+                        onClick={() => setBroadcastMode("direct")}
+                        style={{
+                          padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer",
+                          fontWeight: 600, fontSize: "0.8rem",
+                          background: broadcastMode === "direct" ? "#fff" : "transparent",
+                          color: broadcastMode === "direct" ? "#1e293b" : "#94a3b8",
+                          boxShadow: broadcastMode === "direct" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                        }}
+                      >
+                        Direct
+                      </button>
+                      <button
+                        onClick={() => setBroadcastMode("broadcast")}
+                        style={{
+                          padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer",
+                          fontWeight: 600, fontSize: "0.8rem",
+                          background: broadcastMode === "broadcast" ? "#25D366" : "transparent",
+                          color: broadcastMode === "broadcast" ? "#fff" : "#94a3b8",
+                          boxShadow: broadcastMode === "broadcast" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                        }}
+                      >
+                        Broadcast
+                      </button>
+                    </div>
+                  </div>
+
+                  {broadcastMode === "broadcast" && (
+                    <div>
+                      <p style={{ fontSize: "0.8rem", color: "#475569", marginBottom: 10 }}>
+                        Upload a CSV file with phone numbers to broadcast your message.
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <label style={{
+                          display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+                          borderRadius: 8, border: "1.5px dashed #bbf7d0", background: "#fff",
+                          cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#25D366",
+                        }}>
+                          <input
+                            type="file"
+                            accept=".csv,text/csv"
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setCsvFile(file);
+                              if (!file) setCsvValidation(null);
+                            }}
+                          />
+                          {csvFile ? csvFile.name : "Choose CSV file"}
+                        </label>
+                        {csvValidating && (
+                          <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Validating...</span>
+                        )}
+                        {csvValidation && !csvValidating && (
+                          <span style={{ fontSize: "0.8rem", color: "#16a34a", fontWeight: 600 }}>
+                            {csvValidation.valid} valid{csvValidation.skipped > 0 && ` · ${csvValidation.skipped} skipped`}
+                          </span>
+                        )}
+                        {csvFile && (
+                          <button
+                            onClick={() => { setCsvFile(null); setCsvValidation(null); }}
+                            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: "0.8rem", color: "#64748b" }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 8 }}>
+                        CSV should contain phone numbers (one per row or with a header). Numbers are validated automatically.
+                      </p>
+                    </div>
+                  )}
+
+                  {broadcastMode === "direct" && (
+                    <p style={{ fontSize: "0.8rem", color: "#64748b", margin: 0 }}>
+                      Sends a single direct message to your connected phone number.
+                    </p>
+                  )}
+                </div>
+              )}
+              </>
             )}
           </div>
 
@@ -1168,5 +1325,13 @@ export default function PostPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PostPageWrapper() {
+  return (
+    <Suspense>
+      <PostPage />
+    </Suspense>
   );
 }

@@ -107,11 +107,10 @@ export default function SettingsPage() {
   // Platform connections (from backend)
   const [connections, setConnections] = useState<Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string }>>({});
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
-  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState("");
-  const [whatsappAccessToken, setWhatsappAccessToken] = useState("");
-  const [whatsappDisplayPhone, setWhatsappDisplayPhone] = useState("");
-  const [whatsappChannelId, setWhatsappChannelId] = useState("");
-  const [showWhatsappInput, setShowWhatsappInput] = useState(false);
+  const [whatsappQr, setWhatsappQr] = useState("");
+  const [whatsappStatus, setWhatsappStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [showWhatsappQr, setShowWhatsappQr] = useState(false);
 
   // Team / Org state
   const { organization, membership } = useOrganization();
@@ -252,6 +251,33 @@ export default function SettingsPage() {
     if (tab === "Platforms" && organization) loadPlatformData();
   }, [tab, organization, loadPlatformData]);
 
+  // ── WhatsApp QR session poller ──────────────────────
+  useEffect(() => {
+    if (tab !== "Platforms" || !organization || !showWhatsappQr) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`/api/platforms/${organization.id}/whatsapp/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        setWhatsappStatus(data.status === "connected" ? "connected" : data.qr ? "connecting" : "disconnected");
+        if (data.qr) setWhatsappQr(data.qr);
+        if (data.phone) setWhatsappPhone(data.phone);
+        if (data.status === "connected") {
+          setShowWhatsappQr(false);
+          await loadPlatformData();
+          showToast("success", "WhatsApp connected!");
+        }
+      } catch { /* ignore */ }
+    };
+    poll();
+    const id = setInterval(poll, 3000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [tab, organization, showWhatsappQr, getToken, loadPlatformData]);
+
   const handleConnectPlatform = async (name: string) => {
     if (!organization) return;
     setPlatformLoading(name);
@@ -259,41 +285,28 @@ export default function SettingsPage() {
       const token = await getToken();
 
       if (name === "WhatsApp") {
-        if (!showWhatsappInput) {
-          setShowWhatsappInput(true);
-          setPlatformLoading(null);
-          return;
+        // Start QR pairing session
+        setShowWhatsappQr(true);
+        setWhatsappStatus("connecting");
+        try {
+          const res = await fetch(`/api/platforms/${organization.id}/whatsapp/qr`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error("Failed to start WhatsApp session");
+          const data = await res.json();
+          if (data.qr) setWhatsappQr(data.qr);
+          if (data.status === "connected") {
+            setWhatsappStatus("connected");
+            setShowWhatsappQr(false);
+            await loadPlatformData();
+            showToast("success", "WhatsApp connected!");
+          }
+        } catch {
+          showToast("error", "Failed to start WhatsApp pairing");
+          setShowWhatsappQr(false);
+          setWhatsappStatus("disconnected");
         }
-        if (!whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim()) {
-          showToast("error", "Phone Number ID and Access Token are required");
-          setPlatformLoading(null);
-          return;
-        }
-        const res = await fetch(`/api/platforms/${organization.id}/connect`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            platform: "WhatsApp",
-            phoneNumberId: whatsappPhoneNumberId.trim(),
-            accessToken: whatsappAccessToken.trim(),
-            phoneNumber: whatsappDisplayPhone.trim() || undefined,
-            channelId: whatsappChannelId.trim() || undefined,
-          }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || "Failed to connect WhatsApp");
-        }
-        showToast("success", "WhatsApp Business connected!");
-        setShowWhatsappInput(false);
-        setWhatsappPhoneNumberId("");
-        setWhatsappAccessToken("");
-        setWhatsappDisplayPhone("");
-        setWhatsappChannelId("");
-        await loadPlatformData();
         setPlatformLoading(null);
         return;
       }
@@ -735,96 +748,45 @@ export default function SettingsPage() {
                     <div className={styles.platformHandle}>
                       {conn?.connected
                         ? `Connected as ${conn.handle}`
-                        : p.name === "WhatsApp" && showWhatsappInput
-                          ? "Enter your WhatsApp Business API credentials"
+                        : p.name === "WhatsApp" && showWhatsappQr
+                          ? "Scan the QR code with your WhatsApp to connect"
                           : "Not connected"}
                     </div>
                     {/* Token status & channel info */}
-                    {conn?.connected && conn.tokenExpiresAt && (
+                    {conn?.connected && conn.tokenExpiresAt && p.name !== "WhatsApp" && (
                       <div style={{ fontSize: "0.75rem", color: new Date(conn.tokenExpiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? "#ef4444" : "#94a3b8", marginTop: 2 }}>
                         Token expires {new Date(conn.tokenExpiresAt).toLocaleDateString()}
                         {new Date(conn.tokenExpiresAt) < new Date() && " ⚠️ Expired — reconnect needed"}
                         {new Date(conn.tokenExpiresAt) >= new Date() && new Date(conn.tokenExpiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) && " ⚠️ Expiring soon"}
                       </div>
                     )}
-                    {conn?.connected && p.name === "WhatsApp" && conn.channelId && (
-                      <div style={{ fontSize: "0.75rem", color: "#25D366", marginTop: 2 }}>
-                        📢 Broadcasting to Channel
-                      </div>
-                    )}
-                    {conn?.connected && p.name === "WhatsApp" && !conn.channelId && (
-                      <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 2 }}>
-                        Direct message mode (no Channel configured)
-                      </div>
-                    )}
-                    {/* WhatsApp Business API input */}
-                    {p.name === "WhatsApp" && showWhatsappInput && !conn?.connected && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8, maxWidth: 420 }}>
-                        <p style={{ fontSize: "0.8rem", color: "#64748b", margin: 0 }}>
-                          Get these from <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers" target="_blank" rel="noreferrer" style={{ color: "#25D366" }}>Meta Business Suite → WhatsApp Manager</a>
-                        </p>
-                        <input
-                          type="text"
-                          placeholder="Phone Number ID (e.g. 123456789012345)"
-                          value={whatsappPhoneNumberId}
-                          onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
-                          style={{
-                            padding: "8px 12px", borderRadius: 8,
-                            border: "1.5px solid #e2e8f0", fontSize: "0.88rem",
-                            width: "100%",
-                          }}
-                        />
-                        <input
-                          type="password"
-                          placeholder="Permanent Access Token"
-                          value={whatsappAccessToken}
-                          onChange={(e) => setWhatsappAccessToken(e.target.value)}
-                          style={{
-                            padding: "8px 12px", borderRadius: 8,
-                            border: "1.5px solid #e2e8f0", fontSize: "0.88rem",
-                            width: "100%",
-                          }}
-                        />
-                        <input
-                          type="tel"
-                          placeholder="Display phone (optional, e.g. +1 234 567 8900)"
-                          value={whatsappDisplayPhone}
-                          onChange={(e) => setWhatsappDisplayPhone(e.target.value)}
-                          style={{
-                            padding: "8px 12px", borderRadius: 8,
-                            border: "1.5px solid #e2e8f0", fontSize: "0.88rem",
-                            width: "100%",
-                          }}
-                        />
-                        <input
-                          type="text"
-                          placeholder="WhatsApp Channel ID (optional, for broadcast)"
-                          value={whatsappChannelId}
-                          onChange={(e) => setWhatsappChannelId(e.target.value)}
-                          style={{
-                            padding: "8px 12px", borderRadius: 8,
-                            border: "1.5px solid #e2e8f0", fontSize: "0.88rem",
-                            width: "100%",
-                          }}
-                        />
-                        <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "-4px 0 0 0" }}>
-                          If set, posts will be broadcast to your WhatsApp Channel instead of a single number.
-                        </p>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button
-                            className={styles.btnConnect}
-                            disabled={isLoading}
-                            onClick={() => handleConnectPlatform("WhatsApp")}
-                          >
-                            {isLoading ? "Verifying..." : "Verify & Connect"}
-                          </button>
-                          <button
-                            className={styles.btnDisconnect}
-                            onClick={() => { setShowWhatsappInput(false); setWhatsappPhoneNumberId(""); setWhatsappAccessToken(""); setWhatsappDisplayPhone(""); setWhatsappChannelId(""); }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                    {/* WhatsApp QR code pairing */}
+                    {p.name === "WhatsApp" && showWhatsappQr && !conn?.connected && (
+                      <div style={{ marginTop: 12, textAlign: "center", maxWidth: 300 }}>
+                        {whatsappQr ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={whatsappQr}
+                              alt="WhatsApp QR Code"
+                              style={{ width: 256, height: 256, borderRadius: 12, border: "2px solid #e2e8f0" }}
+                            />
+                            <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: 8 }}>
+                              Open WhatsApp → Settings → Linked Devices → Link a Device
+                            </p>
+                          </>
+                        ) : (
+                          <div style={{ padding: 40, color: "#94a3b8", fontSize: "0.85rem" }}>
+                            Generating QR code...
+                          </div>
+                        )}
+                        <button
+                          className={styles.btnDisconnect}
+                          style={{ marginTop: 8 }}
+                          onClick={() => { setShowWhatsappQr(false); setWhatsappQr(""); setWhatsappStatus("disconnected"); }}
+                        >
+                          Cancel
+                        </button>
                       </div>
                     )}
                   </div>
@@ -845,7 +807,7 @@ export default function SettingsPage() {
                         )}
                       </>
                     ) : (
-                      !(p.name === "WhatsApp" && showWhatsappInput) && isAdmin && (
+                      !(p.name === "WhatsApp" && showWhatsappQr) && isAdmin && (
                         <button
                           className={styles.btnConnect}
                           disabled={isLoading}
@@ -870,6 +832,7 @@ export default function SettingsPage() {
                 <li><span className={styles.permRed}>✗</span> We never modify your account settings</li>
               </ul>
             </div>
+
           </div>
         )}
 

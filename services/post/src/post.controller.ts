@@ -43,7 +43,13 @@ export class PostController {
   @HttpPost(':orgId')
   async create(
     @Param('orgId') orgId: string,
-    @Body() body: { content: string; imageUrl?: string; platforms: string[] },
+    @Body() body: {
+      content: string;
+      imageUrl?: string;
+      platforms: string[];
+      broadcastMode?: 'direct' | 'broadcast';
+      broadcastId?: string;
+    },
     @Req() req: any,
   ) {
     const userId = req.user?.sub;
@@ -55,6 +61,8 @@ export class PostController {
       content: body.content,
       imageUrl: body.imageUrl,
       platforms: body.platforms,
+      broadcastMode: body.broadcastMode,
+      broadcastId: body.broadcastId,
     });
   }
 
@@ -64,7 +72,7 @@ export class PostController {
   async update(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
-    @Body() body: Partial<{ content: string; imageUrl: string; platforms: string[] }>,
+    @Body() body: Partial<{ content: string; imageUrl: string; platforms: string[]; broadcastId: string }>,
   ) {
     return this.postService.update(orgId, id, body);
   }

@@ -1,10 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlatformController } from './platform.controller.js';
 import { PlatformService } from './platform.service.js';
 import { PlatformConnection } from './platform-connection.entity.js';
-import { WhatsAppWebhookController } from './whatsapp-webhook.controller.js';
+import { BroadcastLog } from './broadcast-log.entity.js';
+import { BroadcastRecipient } from './broadcast-recipient.entity.js';
+import { WhatsAppSessionService } from './whatsapp-session.service.js';
+import { BroadcastService } from './broadcast.service.js';
 
 @Module({
   imports: [
@@ -16,12 +19,19 @@ import { WhatsAppWebhookController } from './whatsapp-webhook.controller.js';
       username: 'postgres',
       password: 'postgres',
       database: 'faithreach_platform',
-      entities: [PlatformConnection],
+      entities: [PlatformConnection, BroadcastLog, BroadcastRecipient],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([PlatformConnection]),
+    TypeOrmModule.forFeature([PlatformConnection, BroadcastLog, BroadcastRecipient]),
   ],
-  controllers: [PlatformController, WhatsAppWebhookController],
-  providers: [PlatformService],
+  controllers: [PlatformController],
+  providers: [PlatformService, WhatsAppSessionService, BroadcastService],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  constructor(private sessionService: WhatsAppSessionService) {}
+
+  async onModuleInit() {
+    // Restore any persisted WhatsApp sessions on startup
+    await this.sessionService.restoreSessions();
+  }
+}

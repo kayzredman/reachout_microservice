@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -63,7 +63,7 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 ];
 
 /* ── Component ── */
-export default function ContentLibraryPage() {
+function ContentLibraryPage() {
   const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
@@ -455,5 +455,13 @@ export default function ContentLibraryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ContentLibraryPageWrapper() {
+  return (
+    <Suspense>
+      <ContentLibraryPage />
+    </Suspense>
   );
 }

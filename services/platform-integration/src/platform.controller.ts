@@ -12,10 +12,16 @@ import {
 } from '@nestjs/common';
 import { ClerkAuthGuard } from './clerk-auth.guard.js';
 import { PlatformService } from './platform.service.js';
+import { WhatsAppSessionService } from './whatsapp-session.service.js';
+import { BroadcastService } from './broadcast.service.js';
 
 @Controller('platforms')
 export class PlatformController {
-  constructor(private readonly platformService: PlatformService) {}
+  constructor(
+    private readonly platformService: PlatformService,
+    private readonly sessionService: WhatsAppSessionService,
+    private readonly broadcastService: BroadcastService,
+  ) {}
 
   /**
    * GET /platforms/:orgId
@@ -58,20 +64,14 @@ export class PlatformController {
     const { platform, phoneNumber, phoneNumberId, accessToken, channelId } = body;
     if (!platform) throw new BadRequestException('Platform is required');
 
-    // WhatsApp: direct connection via Business API credentials
+    // WhatsApp: start Baileys QR session
     if (platform === 'WhatsApp') {
-      if (!phoneNumberId || !accessToken) {
-        throw new BadRequestException(
-          'WhatsApp Business Phone Number ID and Access Token are required',
-        );
-      }
-      const conn = await this.platformService.connectWhatsApp(
-        orgId, userId, phoneNumberId, accessToken, phoneNumber, channelId,
-      );
+      const result = await this.sessionService.startSession(orgId);
       return {
-        connected: true,
-        handle: conn.handle,
-        platform: conn.platform,
+        connected: result.status === 'connected',
+        qr: result.qr,
+        status: result.status,
+        platform: 'WhatsApp',
       };
     }
 
@@ -156,5 +156,81 @@ export class PlatformController {
       platformAccountId: conn.platformAccountId,
       channelId: conn.channelId,
     };
+  }
+
+  /**
+   * GET /platforms/:orgId/whatsapp/status
+   * Get current WhatsApp session status + QR code if pairing.
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId/whatsapp/status')
+  async whatsappStatus(@Param('orgId') orgId: string) {
+    return this.sessionService.getSessionStatus(orgId);
+  }
+
+  /**
+   * POST /platforms/:orgId/whatsapp/qr
+   * Start or refresh a WhatsApp QR session for pairing.
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Post(':orgId/whatsapp/qr')
+  async whatsappQr(@Param('orgId') orgId: string) {
+    return this.sessionService.startSession(orgId);
+  }
+
+  /**
+   * POST /platforms/:orgId/broadcast/validate
+   * Validate a CSV of contacts. Returns summary (counts only, no data exposed).
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Post(':orgId/broadcast/validate')
+  async validateCsv(
+    @Param('orgId') orgId: string,
+    @Body() body: { csv: string },
+  ) {
+    if (!body.csv) throw new BadRequestException('CSV content is required');
+    return this.broadcastService.validateCsv(body.csv);
+  }
+
+  /**
+   * POST /platforms/:orgId/broadcast
+   * Send a broadcast message to validated phone numbers.
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Post(':orgId/broadcast')
+  async broadcast(
+    @Param('orgId') orgId: string,
+    @Body() body: { message: string; phones: string[]; postId?: string },
+  ) {
+    const { message, phones, postId } = body;
+    if (!message || !phones?.length) {
+      throw new BadRequestException('Message and phone list are required');
+    }
+    return this.broadcastService.broadcast(orgId, message, phones, postId);
+  }
+
+  /**
+   * GET /platforms/:orgId/broadcasts
+   * Get broadcast history for an organization.
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId/broadcasts')
+  async broadcastLogs(@Param('orgId') orgId: string) {
+    return this.broadcastService.getLogs(orgId);
+  }
+
+  /**
+   * GET /platforms/:orgId/broadcasts/:broadcastId
+   * Get a single broadcast with refreshed aggregate stats.
+   */
+  @UseGuards(ClerkAuthGuard)
+  @Get(':orgId/broadcasts/:broadcastId')
+  async broadcastLog(
+    @Param('orgId') orgId: string,
+    @Param('broadcastId') broadcastId: string,
+  ) {
+    const log = await this.broadcastService.getLog(broadcastId);
+    if (!log) throw new NotFoundException('Broadcast not found');
+    return log;
   }
 }
