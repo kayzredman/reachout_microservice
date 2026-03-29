@@ -183,7 +183,7 @@ export default function Sidebar() {
           height: 100vh;
           width: 240px;
           background: #fff;
-          border-right: 1px solid #eee;
+          border-right: 1px solid #d9dce2;
           display: flex;
           flex-direction: column;
           justify-content: space-between;

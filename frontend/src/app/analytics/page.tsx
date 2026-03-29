@@ -48,7 +48,7 @@ const topPosts = [
 
 export default function AnalyticsPage() {
   return (
-    <div style={{ padding: "40px 0", background: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div style={{ padding: "40px 0", background: "#eef0f4", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h1 style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: 8, color: "#181b20" }}>Analytics</h1>
       <p style={{ color: "#6b7280", marginBottom: 32, fontSize: "1.2rem" }}>
         Track your growth and engagement across all platforms

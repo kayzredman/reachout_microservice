@@ -2,7 +2,7 @@
 
 .dashboardWrap {
   padding: 32px;
-  background: #f9fafb;
+  background: #eef0f4;
   min-height: 100vh;
 }
 
@@ -100,6 +100,66 @@
   font-size: 0.85rem;
 }
 
+/* ── Metric card accents ──────────────────────────────── */
+
+.metricCard {
+  border-top: 3px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.accent_rose {
+  border-top-color: #f43f5e;
+  background: linear-gradient(165deg, #fff5f7 0%, #fff 40%);
+}
+.accent_rose .metricValue {
+  color: #be123c;
+}
+.accent_rose .metricIcon {
+  background: #fff1f2;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.accent_blue {
+  border-top-color: #3b82f6;
+  background: linear-gradient(165deg, #eff6ff 0%, #fff 40%);
+}
+.accent_blue .metricValue {
+  color: #1d4ed8;
+}
+.accent_blue .metricIcon {
+  background: #eff6ff;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.accent_amber {
+  border-top-color: #22c55e;
+  background: linear-gradient(165deg, #f0fdf4 0%, #fff 40%);
+}
+.accent_amber .metricValue {
+  color: #15803d;
+}
+.accent_amber .metricIcon {
+  background: #dcfce7;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.accent_violet {
+  border-top-color: #8b5cf6;
+  background: linear-gradient(165deg, #f5f3ff 0%, #fff 40%);
+}
+.accent_violet .metricValue {
+  color: #6d28d9;
+}
+.accent_violet .metricIcon {
+  background: #f5f3ff;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
 /* ── Section titles ───────────────────────────────────── */
 
 .sectionTitle {
@@ -156,7 +216,19 @@
 .itemList {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
+}
+
+.itemCard {
+  background: #f8f9fb;
+  border: 1px solid #e9ecf0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.itemCard:hover {
+  background: #f1f3f7;
+  border-color: #d1d5db;
 }
 
 .listItem {

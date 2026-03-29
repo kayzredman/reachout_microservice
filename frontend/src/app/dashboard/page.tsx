@@ -168,12 +168,14 @@ export default function DashboardPage() {
                 ? `${fmt(data.metrics!.totalLikes)} likes · ${fmt(data.metrics!.totalComments)} comments · ${fmt(data.metrics!.totalShares)} shares`
                 : "Likes + comments + shares"}
               icon="❤️"
+              accent="rose"
             />
             <MetricCard
               title="Total Reach"
               value={fmt(data.metrics?.totalReach ?? 0)}
               sub={data.metrics?.totalImpressions ? `${fmt(data.metrics.totalImpressions)} impressions` : "Across all platforms"}
               icon="👁️"
+              accent="blue"
             />
             <MetricCard
               title="Published Posts"
@@ -182,6 +184,7 @@ export default function DashboardPage() {
                 ? `${data.posts.length - publishedPosts.length} drafts / scheduled`
                 : "Total published"}
               icon="📝"
+              accent="amber"
             />
             <MetricCard
               title="Connected Platforms"
@@ -190,6 +193,7 @@ export default function DashboardPage() {
                 ? connectedPlatforms.map((p) => p.platform).join(", ")
                 : "No platforms connected yet"}
               icon="🔗"
+              accent="violet"
             />
           </div>
 
@@ -230,7 +234,7 @@ export default function DashboardPage() {
               ) : (
                 <div className={styles.itemList}>
                   {data.scheduled.slice(0, 4).map((post) => (
-                    <div key={post.id} className={styles.listItem}>
+                    <div key={post.id} className={styles.itemCard}>
                       <div className={styles.listContent}>
                         {post.content.length > 100 ? post.content.slice(0, 100) + "…" : post.content}
                       </div>
@@ -263,7 +267,7 @@ export default function DashboardPage() {
               ) : (
                 <div className={styles.itemList}>
                   {activeSeries.slice(0, 4).map((s) => (
-                    <div key={s.id} className={styles.listItem}>
+                    <div key={s.id} className={styles.itemCard}>
                       <div className={styles.seriesHeader}>
                         <span className={styles.seriesColor} style={{ background: s.color }} />
                         <b>{s.title}</b>
@@ -302,7 +306,7 @@ export default function DashboardPage() {
             ) : (
               <div className={styles.itemList}>
                 {recentPosts.map((post) => (
-                  <div key={post.id} className={styles.listItem}>
+                  <div key={post.id} className={styles.itemCard}>
                     <div className={styles.listContent}>
                       {post.content.length > 120 ? post.content.slice(0, 120) + "…" : post.content}
                     </div>
@@ -358,9 +362,10 @@ export default function DashboardPage() {
 
 /* ── Sub-components ───────────────────────────────────── */
 
-function MetricCard({ title, value, sub, icon }: { title: string; value: string; sub?: string; icon?: string }) {
+function MetricCard({ title, value, sub, icon, accent }: { title: string; value: string; sub?: string; icon?: string; accent?: string }) {
+  const accentClass = accent ? styles[`accent_${accent}`] : "";
   return (
-    <div className={styles.dashboardCard}>
+    <div className={`${styles.dashboardCard} ${styles.metricCard} ${accentClass}`}>
       <div className={styles.metricHeader}>
         {icon && <span className={styles.metricIcon}>{icon}</span>}
         <span className={styles.metricTitle}>{title}</span>
