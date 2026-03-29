@@ -1,174 +1,399 @@
 "use client";
 
-
-import { useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
-import Image from "next/image";
+import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import styles from "./dashboard.module.css";
 
+/* ── Type definitions ─────────────────────────────────── */
+
+interface OrgMetrics {
+  totalImpressions: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  totalReach: number;
+  byPlatform: Record<string, { impressions: number; likes: number; comments: number; shares: number; reach: number }>;
+}
+
+interface Post {
+  id: string;
+  content: string;
+  platforms: string[];
+  status: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+  publishResults: { platform: string; status: string; platformPostId?: string; error?: string }[];
+  createdAt: string;
+}
+
+interface Series {
+  id: string;
+  title: string;
+  theme?: string;
+  status: string;
+  totalPosts: number;
+  startDate?: string;
+  endDate?: string;
+  color: string;
+}
+
+interface PlatformConnection {
+  id: string;
+  platform: string;
+  connected: boolean;
+  handle?: string;
+}
+
+interface DashboardData {
+  metrics: OrgMetrics | null;
+  posts: Post[];
+  scheduled: Post[];
+  series: Series[];
+  platforms: PlatformConnection[];
+}
+
+/* ── Main Dashboard ───────────────────────────────────── */
+
 export default function DashboardPage() {
-  const { isSignedIn } = useUser();
-  // Redirect to sign-in if not signed in
+  const { getToken, isSignedIn } = useAuth();
+  const { organization } = useOrganization();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!isSignedIn && typeof window !== 'undefined') {
-      window.location.href = '/sign-in';
+    if (!isSignedIn && typeof window !== "undefined") {
+      window.location.href = "/sign-in";
     }
   }, [isSignedIn]);
-  if (!isSignedIn) {
-    return null;
-  }
+
+  const fetchDashboard = useCallback(async () => {
+    if (!organization?.id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const orgId = organization.id;
+
+      const [metricsRes, postsRes, scheduledRes, seriesRes, platformsRes] = await Promise.all([
+        fetch(`/api/metrics/${orgId}`, { headers }),
+        fetch(`/api/posts/${orgId}`, { headers }),
+        fetch(`/api/posts/${orgId}/scheduled`, { headers }),
+        fetch(`/api/series/${orgId}`, { headers }),
+        fetch(`/api/platforms/${orgId}`, { headers }),
+      ]);
+
+      const [metrics, posts, scheduled, series, platforms] = await Promise.all([
+        metricsRes.ok ? metricsRes.json() : null,
+        postsRes.ok ? postsRes.json() : [],
+        scheduledRes.ok ? scheduledRes.json() : [],
+        seriesRes.ok ? seriesRes.json() : [],
+        platformsRes.ok ? platformsRes.json() : [],
+      ]);
+
+      setData({ metrics, posts, scheduled, series, platforms });
+    } catch {
+      setError("Failed to load dashboard data. Make sure your services are running.");
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, organization?.id]);
+
+  useEffect(() => {
+    if (isSignedIn && organization?.id) {
+      fetchDashboard();
+    }
+  }, [isSignedIn, organization?.id, fetchDashboard]);
+
+  if (!isSignedIn) return null;
+
+  /* Derived data */
+  const connectedPlatforms = data?.platforms.filter((p) => p.connected) ?? [];
+  const publishedPosts = data?.posts.filter((p) => p.status === "published" || p.status === "partially_failed") ?? [];
+  const recentPosts = publishedPosts.slice(0, 5);
+  const activeSeries = data?.series.filter((s) => s.status === "Active" || s.status === "Upcoming") ?? [];
+  const totalEngagement = data?.metrics
+    ? data.metrics.totalLikes + data.metrics.totalComments + data.metrics.totalShares
+    : 0;
+
   return (
-    <div style={{ padding: 32, background: "#fff", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: 8, color: "#181b20" }}>Dashboard</h1>
-      <p style={{ color: "#6b7280", marginBottom: 32, fontSize: "1.2rem" }}>
-        Welcome back! Here&apos;s your content overview.
-      </p>
-      <div className={styles.dashboardRow} style={{ display: "flex", gap: 24, marginBottom: 32 }}>
-        <MetricCard title="Total Followers" value="26,710" change="+8.3% from last week" />
-        <MetricCard title="Engagement" value="12,450" sub="5.7% engagement rate" />
-        <MetricCard title="Total Reach" value="48,920" change="+12.4% from last week" />
-        <MetricCard title="Posts This Week" value="7" sub="Across all platforms" />
-      </div>
-      <div className={styles.dashboardCard} style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 16, color: "#181b20" }}>Growth Trends</h2>
-        <GrowthTrendsChart />
-      </div>
-      <div className={styles.dashboardRow} style={{ display: "flex", gap: 24 }}>
-        <div className={styles.dashboardCard} style={{ flex: 1 }}>
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 16, color: "#181b20" }}>Upcoming Posts</h3>
-          <div style={{ marginBottom: 16 }}>
-            <b>Sunday Reflection:</b> In the midst of life&apos;s storms, anchor yourself in God&apos;s unchanging promises. He is your rock and refuge. <span role="img" aria-label="rock">🪨</span><span role="img" aria-label="church">⛪️</span> #SundayThoughts...
-            <div style={{ color: "#6b7280", fontSize: 12 }}>Mar 23, 9:00 AM · <span style={{ background: "#e0f7fa", color: "#007b8a", borderRadius: 8, padding: "2px 8px", marginRight: 4 }}>instagram</span> <span style={{ background: "#e0f7fa", color: "#007b8a", borderRadius: 8, padding: "2px 8px" }}>facebook</span></div>
-          </div>
-          <div>
-            <b>Mid-week encouragement:</b> You are stronger than you think because God is stronger than anything you face. Keep pushing forward! <span role="img" aria-label="muscle">💪</span><span role="img" aria-label="pray">🙏</span>...
-            <div style={{ color: "#6b7280", fontSize: 12 }}>Mar 26, 12:00 PM · <span style={{ background: "#e0f7fa", color: "#007b8a", borderRadius: 8, padding: "2px 8px", marginRight: 4 }}>instagram</span> <span style={{ background: "#e0f7fa", color: "#007b8a", borderRadius: 8, padding: "2px 8px" }}>facebook</span></div>
-          </div>
+    <div className={styles.dashboardWrap}>
+      <div className={styles.dashboardHeader}>
+        <div>
+          <h1 className={styles.dashboardTitle}>Dashboard</h1>
+          <p className={styles.dashboardSub}>
+            {organization?.name ? `${organization.name} — content overview` : "Welcome back! Here\u2019s your content overview."}
+          </p>
         </div>
-        <div className={styles.dashboardCard} style={{ flex: 1 }}>
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 16, color: "#181b20" }}>Active Content Series</h3>
-          <div style={{ marginBottom: 16 }}>
-            <b>30-Day Prayer Journey</b>
-            <div style={{ color: "#6b7280", fontSize: 12 }}>Prayer &amp; Spiritual Growth · 30 posts · Mar 1 - Mar 30</div>
-          </div>
-          <div>
-            <b>Walking by Faith</b>
-            <div style={{ color: "#6b7280", fontSize: 12 }}>Faith &amp; Trust · 12 posts · Mar 15 - Apr 15</div>
-          </div>
+        {data && !loading && (
+          <button className={styles.refreshBtn} onClick={fetchDashboard} title="Refresh data">
+            ↻
+          </button>
+        )}
+      </div>
+
+      {/* ── Loading state ─────────────────────── */}
+      {loading && (
+        <div className={styles.dashboardRow}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className={`${styles.dashboardCard} ${styles.skeleton}`}>
+              <div className={styles.skeletonLine} style={{ width: "60%" }} />
+              <div className={styles.skeletonLine} style={{ width: "40%", height: 32 }} />
+              <div className={styles.skeletonLine} style={{ width: "80%" }} />
+            </div>
+          ))}
         </div>
-      </div>
-      <div className={styles.dashboardActions} style={{ marginTop: 32, display: "flex", gap: 20, width: "100%" }}>
-        <button style={{
-          background: "linear-gradient(90deg, #a259f7, #2de1fc)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 28,
-          padding: "12px 0",
-          fontWeight: 600,
-          fontSize: "1rem",
-          cursor: "pointer",
-          boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flex: 1,
-          justifyContent: "center",
-          transition: "box-shadow 0.2s, transform 0.2s",
-          outline: "none"
-        }}>
-          <span style={{ fontSize: 18, marginRight: 8, display: "flex", alignItems: "center" }}>✈️</span>
-          Create New Post
-        </button>
-        <a href="/analytics" style={{
-          background: "#fff",
-          color: "#7c3aed",
-          border: "2px solid #e5e7eb",
-          borderRadius: 28,
-          padding: "12px 0",
-          fontWeight: 600,
-          fontSize: "1rem",
-          cursor: "pointer",
-          boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.08)",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flex: 1,
-          justifyContent: "center",
-          transition: "box-shadow 0.2s, transform 0.2s",
-          outline: "none",
-          textDecoration: "none"
-        }}>
-          <span style={{ fontSize: 18, marginRight: 8, display: "flex", alignItems: "center" }}>📈</span>
-          View Full Analytics
-        </a>
-      </div>
+      )}
+
+      {/* ── Error state ───────────────────────── */}
+      {error && !loading && (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>⚠️</span>
+          <p>{error}</p>
+          <button className={styles.emptyAction} onClick={fetchDashboard}>Retry</button>
+        </div>
+      )}
+
+      {/* ── Data loaded ───────────────────────── */}
+      {data && !loading && !error && (
+        <>
+          {/* ── Metric cards ─────────────────── */}
+          <div className={styles.dashboardRow}>
+            <MetricCard
+              title="Total Engagement"
+              value={fmt(totalEngagement)}
+              sub={totalEngagement > 0
+                ? `${fmt(data.metrics!.totalLikes)} likes · ${fmt(data.metrics!.totalComments)} comments · ${fmt(data.metrics!.totalShares)} shares`
+                : "Likes + comments + shares"}
+              icon="❤️"
+            />
+            <MetricCard
+              title="Total Reach"
+              value={fmt(data.metrics?.totalReach ?? 0)}
+              sub={data.metrics?.totalImpressions ? `${fmt(data.metrics.totalImpressions)} impressions` : "Across all platforms"}
+              icon="👁️"
+            />
+            <MetricCard
+              title="Published Posts"
+              value={String(publishedPosts.length)}
+              sub={data.posts.length > publishedPosts.length
+                ? `${data.posts.length - publishedPosts.length} drafts / scheduled`
+                : "Total published"}
+              icon="📝"
+            />
+            <MetricCard
+              title="Connected Platforms"
+              value={String(connectedPlatforms.length)}
+              sub={connectedPlatforms.length > 0
+                ? connectedPlatforms.map((p) => p.platform).join(", ")
+                : "No platforms connected yet"}
+              icon="🔗"
+            />
+          </div>
+
+          {/* ── Platform Breakdown ────────────── */}
+          {data.metrics && Object.keys(data.metrics.byPlatform).length > 0 && (
+            <div className={styles.dashboardCard} style={{ marginBottom: 24 }}>
+              <h2 className={styles.sectionTitle}>Platform Breakdown</h2>
+              <div className={styles.platformGrid}>
+                {Object.entries(data.metrics.byPlatform).map(([platform, stats]) => (
+                  <div key={platform} className={styles.platformItem}>
+                    <div className={styles.platformName}>
+                      <span className={styles.platformDot} style={{ background: platformColor(platform) }} />
+                      {platform}
+                    </div>
+                    <div className={styles.platformStats}>
+                      <span>{fmt(stats.impressions)} impressions</span>
+                      <span>{fmt(stats.likes)} likes</span>
+                      <span>{fmt(stats.comments)} comments</span>
+                      <span>{fmt(stats.reach)} reach</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Two-column: Upcoming Posts + Active Series ── */}
+          <div className={styles.dashboardRow}>
+            {/* Upcoming Posts */}
+            <div className={`${styles.dashboardCard} ${styles.flexCard}`}>
+              <h3 className={styles.sectionTitle}>Upcoming Posts</h3>
+              {data.scheduled.length === 0 ? (
+                <div className={styles.emptyInline}>
+                  <span className={styles.emptyIcon}>📅</span>
+                  <p>No scheduled posts yet.</p>
+                  <Link href="/post" className={styles.emptyAction}>Schedule a Post</Link>
+                </div>
+              ) : (
+                <div className={styles.itemList}>
+                  {data.scheduled.slice(0, 4).map((post) => (
+                    <div key={post.id} className={styles.listItem}>
+                      <div className={styles.listContent}>
+                        {post.content.length > 100 ? post.content.slice(0, 100) + "…" : post.content}
+                      </div>
+                      <div className={styles.listMeta}>
+                        {post.scheduledAt && formatDate(post.scheduledAt)}
+                        {post.platforms.map((p) => (
+                          <span key={p} className={styles.platformBadge}>{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {data.scheduled.length > 4 && (
+                    <Link href="/scheduler" className={styles.viewAllLink}>
+                      View all {data.scheduled.length} scheduled →
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Active Series */}
+            <div className={`${styles.dashboardCard} ${styles.flexCard}`}>
+              <h3 className={styles.sectionTitle}>Active Series</h3>
+              {activeSeries.length === 0 ? (
+                <div className={styles.emptyInline}>
+                  <span className={styles.emptyIcon}>📚</span>
+                  <p>No active content series.</p>
+                  <Link href="/planner" className={styles.emptyAction}>Create a Series</Link>
+                </div>
+              ) : (
+                <div className={styles.itemList}>
+                  {activeSeries.slice(0, 4).map((s) => (
+                    <div key={s.id} className={styles.listItem}>
+                      <div className={styles.seriesHeader}>
+                        <span className={styles.seriesColor} style={{ background: s.color }} />
+                        <b>{s.title}</b>
+                        <span className={`${styles.statusBadge} ${s.status === "Active" ? styles.statusActive : styles.statusUpcoming}`}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <div className={styles.listMeta}>
+                        {s.theme && <span>{s.theme}</span>}
+                        <span>{s.totalPosts} posts</span>
+                        {s.startDate && s.endDate && (
+                          <span>{formatShortDate(s.startDate)} – {formatShortDate(s.endDate)}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {activeSeries.length > 4 && (
+                    <Link href="/planner" className={styles.viewAllLink}>
+                      View all {activeSeries.length} series →
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Recent Activity ────────────────── */}
+          <div className={styles.dashboardCard} style={{ marginTop: 24 }}>
+            <h3 className={styles.sectionTitle}>Recent Activity</h3>
+            {recentPosts.length === 0 ? (
+              <div className={styles.emptyInline}>
+                <span className={styles.emptyIcon}>🚀</span>
+                <p>No published posts yet. Create and publish your first post!</p>
+                <Link href="/post" className={styles.emptyAction}>Create a Post</Link>
+              </div>
+            ) : (
+              <div className={styles.itemList}>
+                {recentPosts.map((post) => (
+                  <div key={post.id} className={styles.listItem}>
+                    <div className={styles.listContent}>
+                      {post.content.length > 120 ? post.content.slice(0, 120) + "…" : post.content}
+                    </div>
+                    <div className={styles.listMeta}>
+                      {post.publishedAt && <span>Published {formatDate(post.publishedAt)}</span>}
+                      {post.publishResults.map((r) => (
+                        <span
+                          key={r.platform}
+                          className={`${styles.platformBadge} ${r.status === "published" ? styles.badgeSuccess : styles.badgeFail}`}
+                        >
+                          {r.platform} {r.status === "published" ? "✓" : "✗"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {publishedPosts.length > 5 && (
+                  <Link href="/content" className={styles.viewAllLink}>
+                    View all {publishedPosts.length} posts →
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Quick Actions ─────────────────── */}
+          <div className={styles.dashboardActions}>
+            <Link href="/post" className={styles.actionPrimary}>
+              ✈️ Create New Post
+            </Link>
+            {connectedPlatforms.length < 2 && (
+              <Link href="/settings" className={styles.actionSecondary}>
+                🔗 Connect Platforms
+              </Link>
+            )}
+            <Link href="/analytics" className={styles.actionSecondary}>
+              📈 View Analytics
+            </Link>
+          </div>
+        </>
+      )}
+
+      {/* ── No org selected ───────────────────── */}
+      {!organization && isSignedIn && !loading && (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>🏛️</span>
+          <p>Select or create an organization from the sidebar to get started.</p>
+        </div>
+      )}
     </div>
   );
 }
 
-// Simple SVG line chart for prestaged data
-function GrowthTrendsChart() {
-  // Example prestaged data
-  const data = [27000, 27500, 28000, 29000];
-  const labels = ["Week 1", "Week 2", "Week 3", "Week 4"];
-  const maxY = 60000;
-  const minY = 0;
-  const chartHeight = 220;
-  const chartWidth = 700;
-  const padding = 48;
-  // Calculate points
-  const points = data.map((v, i) => {
-    const x = padding + (i * (chartWidth - 2 * padding)) / (data.length - 1);
-    const y = chartHeight - padding - ((v - minY) / (maxY - minY)) * (chartHeight - 2 * padding);
-    return `${x},${y}`;
-  }).join(" ");
-  return (
-    <div style={{ width: chartWidth, height: chartHeight, overflow: "auto" }}>
-      <svg width={chartWidth} height={chartHeight}>
-        {/* Y axis grid lines and labels */}
-        {[0, 15000, 30000, 45000, 60000].map((y, i) => {
-          const yPos = chartHeight - padding - ((y - minY) / (maxY - minY)) * (chartHeight - 2 * padding);
-          return (
-            <g key={y}>
-              <line x1={padding} x2={chartWidth - padding} y1={yPos} y2={yPos} stroke="#e5e7eb" strokeDasharray="4 2" />
-              <text x={padding - 10} y={yPos + 4} fontSize="13" fill="#888" textAnchor="end">{y.toLocaleString()}</text>
-            </g>
-          );
-        })}
-        {/* X axis labels */}
-        {labels.map((label, i) => {
-          const x = padding + (i * (chartWidth - 2 * padding)) / (labels.length - 1);
-          return (
-            <text key={label} x={x} y={chartHeight - padding + 28} fontSize="15" fill="#888" textAnchor="middle">{label}</text>
-          );
-        })}
-        {/* Data line */}
-        <polyline
-          fill="none"
-          stroke="#10b981"
-          strokeWidth="3"
-          points={points}
-        />
-        {/* Data points */}
-        {data.map((v, i) => {
-          const x = padding + (i * (chartWidth - 2 * padding)) / (data.length - 1);
-          const y = chartHeight - padding - ((v - minY) / (maxY - minY)) * (chartHeight - 2 * padding);
-          return (
-            <circle key={i} cx={x} cy={y} r={6} fill="#fff" stroke="#10b981" strokeWidth={3} />
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
+/* ── Sub-components ───────────────────────────────────── */
 
-function MetricCard({ title, value, change, sub }: { title: string; value: string; change?: string; sub?: string }) {
+function MetricCard({ title, value, sub, icon }: { title: string; value: string; sub?: string; icon?: string }) {
   return (
     <div className={styles.dashboardCard}>
-      <div style={{ color: "#181b20", fontWeight: 700, marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: "2rem", fontWeight: 700, marginBottom: 4, color: "#181b20" }}>{value}</div>
-      {change && <div style={{ color: "#16a34a", fontSize: 14 }}>{change}</div>}
-      {sub && <div style={{ color: "#6b7280", fontSize: 14 }}>{sub}</div>}
+      <div className={styles.metricHeader}>
+        {icon && <span className={styles.metricIcon}>{icon}</span>}
+        <span className={styles.metricTitle}>{title}</span>
+      </div>
+      <div className={styles.metricValue}>{value}</div>
+      {sub && <div className={styles.metricSub}>{sub}</div>}
     </div>
   );
+}
+
+/* ── Helpers ──────────────────────────────────────────── */
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return n.toLocaleString();
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function platformColor(name: string): string {
+  const colors: Record<string, string> = {
+    Instagram: "#E1306C",
+    Facebook: "#1877F2",
+    "X (Twitter)": "#000",
+    YouTube: "#FF0000",
+    WhatsApp: "#25D366",
+  };
+  return colors[name] ?? "#6b7280";
 }
