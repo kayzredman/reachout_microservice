@@ -8,17 +8,17 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 
 ## Tech Stack
 
-| Layer           | Technology                                               |
-| --------------- | -------------------------------------------------------- |
-| **Frontend**    | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| **Backend**     | NestJS 11, TypeScript                                    |
-| **Auth**        | Clerk (Organizations, RBAC)                              |
-| **Database**    | PostgreSQL 15, TypeORM                                   |
-| **WhatsApp**    | Baileys (QR-based multi-device protocol)                 |
-| **Monorepo**    | TurboRepo, pnpm workspaces                               |
-| **Styling**     | CSS Modules                                              |
-| **Icons**       | react-icons (Font Awesome 6)                             |
-| **Runtime**     | Node.js v24                                              |
+| Layer        | Technology                                               |
+| ------------ | -------------------------------------------------------- |
+| **Frontend** | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
+| **Backend**  | NestJS 11, TypeScript                                    |
+| **Auth**     | Clerk (Organizations, RBAC)                              |
+| **Database** | PostgreSQL 15, TypeORM                                   |
+| **WhatsApp** | Baileys (QR-based multi-device protocol)                 |
+| **Monorepo** | TurboRepo, pnpm workspaces                               |
+| **Styling**  | CSS Modules                                              |
+| **Icons**    | react-icons (Font Awesome 6)                             |
+| **Runtime**  | Node.js v24                                              |
 
 ---
 
@@ -113,13 +113,13 @@ faithreach/
 
 Full OAuth connection management and content publishing to all platforms:
 
-| Platform    | Auth Method                  | Publishing | Status |
-| ----------- | ---------------------------- | ---------- | ------ |
-| Instagram   | Meta OAuth (Graph API v21.0) | Photo + caption via Graph API | Working |
-| Facebook    | Meta OAuth (Graph API v21.0) | Text + image posts via Pages API | Working |
-| X (Twitter) | OAuth 2.0 PKCE               | Tweets via X API v2 (with token refresh) | Working |
-| YouTube     | Google OAuth 2.0             | Planned | Connected |
-| WhatsApp    | Baileys QR Code              | Direct message + CSV broadcast | Working |
+| Platform    | Auth Method                  | Publishing                               | Status    |
+| ----------- | ---------------------------- | ---------------------------------------- | --------- |
+| Instagram   | Meta OAuth (Graph API v21.0) | Photo + caption via Graph API            | Working   |
+| Facebook    | Meta OAuth (Graph API v21.0) | Text + image posts via Pages API         | Working   |
+| X (Twitter) | OAuth 2.0 PKCE               | Tweets via X API v2 (with token refresh) | Working   |
+| YouTube     | Google OAuth 2.0             | Planned                                  | Connected |
+| WhatsApp    | Baileys QR Code              | Direct message + CSV broadcast           | Working   |
 
 **WhatsApp Integration (Baileys):**
 
@@ -291,27 +291,27 @@ pnpm dev
 
 ## Service Ports
 
-| Service              | Port | Database              | Status      |
-| -------------------- | ---- | --------------------- | ----------- |
-| Frontend             | 3000 | —                     | Implemented |
-| Auth                 | 3001 | faithreach_auth       | Implemented |
-| Post                 | 3003 | faithreach_post       | Implemented |
-| Notification         | 3004 | —                     | Scaffolded  |
-| Analytics            | 3005 | —                     | Scaffolded  |
-| Content Planner      | 3006 | —                     | Scaffolded  |
-| Billing              | 3007 | —                     | Scaffolded  |
-| Notification         | 3008 | —                     | Scaffolded  |
-| Platform Integration | 3009 | faithreach_platform   | Implemented |
+| Service              | Port | Database            | Status      |
+| -------------------- | ---- | ------------------- | ----------- |
+| Frontend             | 3000 | —                   | Implemented |
+| Auth                 | 3001 | faithreach_auth     | Implemented |
+| Post                 | 3003 | faithreach_post     | Implemented |
+| Notification         | 3004 | —                   | Scaffolded  |
+| Analytics            | 3005 | —                   | Scaffolded  |
+| Content Planner      | 3006 | —                   | Scaffolded  |
+| Billing              | 3007 | —                   | Scaffolded  |
+| Notification         | 3008 | —                   | Scaffolded  |
+| Platform Integration | 3009 | faithreach_platform | Implemented |
 
 ---
 
 ## Scripts
 
-| Command            | Description                             |
-| ------------------ | --------------------------------------- |
-| `pnpm dev`         | Run all services + frontend in dev mode |
-| `pnpm build`       | Build all packages                      |
-| `pnpm lint`        | Lint all packages                       |
+| Command      | Description                             |
+| ------------ | --------------------------------------- |
+| `pnpm dev`   | Run all services + frontend in dev mode |
+| `pnpm build` | Build all packages                      |
+| `pnpm lint`  | Lint all packages                       |
 
 ---
 
