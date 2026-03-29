@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.1.6",
-    "@types/express": "^5.0.6"
+    "@types/express": "^5.0.6",
+    "pg": "^8.20.0"
   }
 }

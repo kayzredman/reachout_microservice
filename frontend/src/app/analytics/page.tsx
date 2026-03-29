@@ -1,289 +1,720 @@
 "use client";
 
-import { useState } from "react";
+import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import styles from "./analytics.module.css";
 
-// Dummy data for charts
-const growthData = {
-  labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
-  followers: [15000, 17000, 18500, 20000],
-  engagement: [30000, 32000, 34000, 36000],
-  reach: [45000, 47000, 49000, 52000],
-};
+/* ── Types ────────────────────────────────────────────── */
 
-const platformPie = [
-  { label: "Instagram", value: 12450, color: "#ec4899" },
-  { label: "Facebook", value: 8920, color: "#3b82f6" },
-  { label: "X", value: 5340, color: "#222" },
-];
+interface OrgMetrics {
+  totalImpressions: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  totalReach: number;
+  byPlatform: Record<
+    string,
+    { impressions: number; likes: number; comments: number; shares: number; reach: number }
+  >;
+}
 
-const engagementBar = [
-  { label: "Instagram", value: 5420 },
-  { label: "Facebook", value: 4230 },
-  { label: "X", value: 2900 },
-];
+interface Post {
+  id: string;
+  content: string;
+  platforms: string[];
+  status: string;
+  publishedAt?: string;
+  publishResults: { platform: string; status: string; platformPostId?: string }[];
+}
 
-const platformPerf = [
-  { name: "Instagram", followers: 12450, engagement: 5420, handle: "@faithchurch" },
-  { name: "Facebook", followers: 8920, engagement: 4230, handle: "@Faith Church Community" },
-  { name: "X (Twitter)", followers: 5340, engagement: null, handle: "@faithchurchorg" },
-];
+interface PostMetricsSnapshot {
+  id: string;
+  postId: string;
+  platform: string;
+  impressions: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  reach: number;
+  views: number;
+  saves: number;
+  engagementRate: number;
+  deliveryStatus?: string;
+  fetchedAt: string;
+}
 
-const topPosts = [
-  {
-    title: "Good morning! Remember that God's grace is new every morning...",
-    engagement: 553,
-    reach: 5220,
-  },
-  {
-    title: "Today's devotional: 'Faith is taking the first step...'",
-    engagement: 436,
-    reach: 4580,
-  },
-  {
-    title: "Week 3 of our 30-day devotional series...",
-    engagement: 381,
-    reach: 3890,
-  },
-];
+interface PostWithMetrics {
+  post: Post;
+  metrics: Record<string, PostMetricsSnapshot>;
+  totalEngagement: number;
+  totalReach: number;
+  totalImpressions: number;
+}
+
+interface TrendPoint {
+  date: string;
+  engagement: number;
+  reach: number;
+  impressions: number;
+}
+
+type MetricTab = "engagement" | "reach" | "impressions";
+
+/* ── Main component ───────────────────────────────────── */
 
 export default function AnalyticsPage() {
+  const { getToken, isSignedIn } = useAuth();
+  const { organization } = useOrganization();
+  const [metrics, setMetrics] = useState<OrgMetrics | null>(null);
+  const [postsWithMetrics, setPostsWithMetrics] = useState<PostWithMetrics[]>([]);
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [metricTab, setMetricTab] = useState<MetricTab>("engagement");
+
+  useEffect(() => {
+    if (!isSignedIn && typeof window !== "undefined") {
+      window.location.href = "/sign-in";
+    }
+  }, [isSignedIn]);
+
+  const fetchAnalytics = useCallback(async () => {
+    if (!organization?.id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const orgId = organization.id;
+
+      const [metricsRes, postsRes] = await Promise.all([
+        fetch(`/api/metrics/${orgId}`, { headers }),
+        fetch(`/api/posts/${orgId}`, { headers }),
+      ]);
+
+      const orgMetrics: OrgMetrics | null = metricsRes.ok ? await metricsRes.json() : null;
+      const allPosts: Post[] = postsRes.ok ? await postsRes.json() : [];
+
+      setMetrics(orgMetrics);
+
+      const published = allPosts.filter(
+        (p) => p.status === "published" || p.status === "partially_failed",
+      );
+
+      const postMetricsResults = await Promise.all(
+        published.slice(0, 20).map(async (post) => {
+          try {
+            const res = await fetch(`/api/metrics/${orgId}/post/${post.id}`, { headers });
+            const data: Record<string, PostMetricsSnapshot> = res.ok ? await res.json() : {};
+            const values = Object.values(data);
+            return {
+              post,
+              metrics: data,
+              totalEngagement: values.reduce((s, m) => s + m.likes + m.comments + m.shares, 0),
+              totalReach: values.reduce((s, m) => s + m.reach, 0),
+              totalImpressions: values.reduce((s, m) => s + m.impressions, 0),
+            };
+          } catch {
+            return { post, metrics: {}, totalEngagement: 0, totalReach: 0, totalImpressions: 0 };
+          }
+        }),
+      );
+
+      postMetricsResults.sort((a, b) => b.totalEngagement - a.totalEngagement);
+      setPostsWithMetrics(postMetricsResults);
+
+      // Fetch history for growth trends
+      const historyResults = await Promise.all(
+        published.slice(0, 15).map(async (post) => {
+          try {
+            const res = await fetch(`/api/metrics/${orgId}/post/${post.id}/history`, { headers });
+            if (!res.ok) return [];
+            const data = await res.json();
+            return Array.isArray(data) ? data : [];
+          } catch {
+            return [];
+          }
+        }),
+      );
+
+      const allSnapshots = historyResults.flat();
+      const byDate: Record<string, { engagement: number; reach: number; impressions: number }> = {};
+      for (const snap of allSnapshots) {
+        const day = new Date(snap.fetchedAt).toISOString().split("T")[0];
+        if (!byDate[day]) byDate[day] = { engagement: 0, reach: 0, impressions: 0 };
+        byDate[day].engagement += (snap.likes || 0) + (snap.comments || 0) + (snap.shares || 0);
+        byDate[day].reach += snap.reach || 0;
+        byDate[day].impressions += snap.impressions || 0;
+      }
+      setTrendData(
+        Object.entries(byDate)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, vals]) => ({ date, ...vals })),
+      );
+    } catch {
+      setError("Failed to load analytics data. Make sure your services are running.");
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, organization?.id]);
+
+  useEffect(() => {
+    if (isSignedIn && organization?.id) {
+      fetchAnalytics();
+    }
+  }, [isSignedIn, organization?.id, fetchAnalytics]);
+
+  if (!isSignedIn) return null;
+
+  const totalEngagement = metrics
+    ? metrics.totalLikes + metrics.totalComments + metrics.totalShares
+    : 0;
+  const engagementRate =
+    metrics && metrics.totalImpressions > 0
+      ? ((totalEngagement / metrics.totalImpressions) * 100).toFixed(2)
+      : "0.00";
+  const platforms = metrics ? Object.keys(metrics.byPlatform) : [];
+  const maxPlatformReach = metrics
+    ? Math.max(...Object.values(metrics.byPlatform).map((p) => p.reach), 1)
+    : 1;
+  const maxPlatformEngagement = metrics
+    ? Math.max(
+        ...Object.values(metrics.byPlatform).map((p) => p.likes + p.comments + p.shares),
+        1,
+      )
+    : 1;
+  const maxPlatformImpressions = metrics
+    ? Math.max(...Object.values(metrics.byPlatform).map((p) => p.impressions), 1)
+    : 1;
+
+  const topPosts = postsWithMetrics.slice(0, 10);
+  const maxPostEng = Math.max(...topPosts.map((p) => p.totalEngagement), 1);
+
   return (
-    <div style={{ padding: "40px 0", background: "#eef0f4", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <h1 style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: 8, color: "#181b20" }}>Analytics</h1>
-      <p style={{ color: "#6b7280", marginBottom: 32, fontSize: "1.2rem" }}>
-        Track your growth and engagement across all platforms
-      </p>
-      {/* Stats Row */}
-      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1300, marginBottom: 32 }}>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#888", fontSize: 15, marginBottom: 8 }}>Total Followers</div>
-          <div style={{ fontWeight: 700, fontSize: 32, color: "#16a34a" }}>26,710</div>
-          <div style={{ color: "#16a34a", fontSize: 15, marginTop: 8 }}>↗ +8.3% this week</div>
+    <div className={styles.analyticsWrap}>
+      <div className={styles.analyticsHeader}>
+        <div>
+          <h1 className={styles.analyticsTitle}>Analytics</h1>
+          <p className={styles.analyticsSub}>
+            {organization?.name
+              ? `${organization.name} — engagement & performance insights`
+              : "Track your growth and engagement across all platforms"}
+          </p>
         </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#888", fontSize: 15, marginBottom: 8 }}>Total Engagement</div>
-          <div style={{ fontWeight: 700, fontSize: 32, color: "#181b20" }}>12,450</div>
-          <div style={{ color: "#888", fontSize: 15, marginTop: 8 }}>5.7% engagement rate</div>
-        </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#888", fontSize: 15, marginBottom: 8 }}>Total Reach</div>
-          <div style={{ fontWeight: 700, fontSize: 32, color: "#16a34a" }}>48,920</div>
-          <div style={{ color: "#16a34a", fontSize: 15, marginTop: 8 }}>↗ +12.4% this week</div>
-        </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#888", fontSize: 15, marginBottom: 8 }}>Posts This Week</div>
-          <div style={{ fontWeight: 700, fontSize: 32, color: "#181b20" }}>7</div>
-          <div style={{ color: "#888", fontSize: 15, marginTop: 8 }}>Across all platforms</div>
-        </div>
+        {metrics && !loading && (
+          <button className={styles.refreshBtn} onClick={fetchAnalytics} title="Refresh data">
+            ↻
+          </button>
+        )}
       </div>
-      {/* Growth Trends & Platform Distribution */}
-      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1300, marginBottom: 32 }}>
-        <div style={{ flex: 2, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)", minWidth: 400 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, color: "#181b20" }}>Weekly Growth Trends</div>
-          {/* Simple SVG Line Chart */}
-          <svg width="100%" height="220" viewBox="0 0 500 220">
-            {/* Axes */}
-            <line x1="40" y1="20" x2="40" y2="200" stroke="#e5e7eb" strokeWidth="2" />
-            <line x1="40" y1="200" x2="480" y2="200" stroke="#e5e7eb" strokeWidth="2" />
-            {/* Y ticks */}
-            {[0, 15000, 30000, 45000, 60000].map((y, i) => (
-              <g key={i}>
-                <text x="10" y={200 - (y / 60000) * 180 + 5} fontSize="12" fill="#888">{y}</text>
-                <line x1="35" y1={200 - (y / 60000) * 180} x2="480" y2={200 - (y / 60000) * 180} stroke="#f3f4f6" strokeWidth="1" />
-              </g>
-            ))}
-            {/* X labels */}
-            {growthData.labels.map((label, i) => (
-              <text key={i} x={70 + i * 110} y={215} fontSize="13" fill="#888">{label}</text>
-            ))}
-            {/* Followers line */}
-            <polyline
-              fill="none"
-              stroke="#818cf8"
-              strokeWidth="3"
-              points={growthData.followers.map((v, i) => `${70 + i * 110},${200 - (v / 60000) * 180}`).join(" ")}
-            />
-            {/* Engagement line */}
-            <polyline
-              fill="none"
-              stroke="#a78bfa"
-              strokeWidth="3"
-              points={growthData.engagement.map((v, i) => `${70 + i * 110},${200 - (v / 60000) * 180}`).join(" ")}
-            />
-            {/* Reach line */}
-            <polyline
-              fill="none"
-              stroke="#22d3ee"
-              strokeWidth="3"
-              points={growthData.reach.map((v, i) => `${70 + i * 110},${200 - (v / 60000) * 180}`).join(" ")}
-            />
-            {/* Dots */}
-            {growthData.followers.map((v, i) => (
-              <circle key={i} cx={70 + i * 110} cy={200 - (v / 60000) * 180} r="4" fill="#818cf8" />
-            ))}
-            {growthData.engagement.map((v, i) => (
-              <circle key={i} cx={70 + i * 110} cy={200 - (v / 60000) * 180} r="4" fill="#a78bfa" />
-            ))}
-            {growthData.reach.map((v, i) => (
-              <circle key={i} cx={70 + i * 110} cy={200 - (v / 60000) * 180} r="4" fill="#22d3ee" />
-            ))}
-            {/* Legend */}
-            <g>
-              <circle cx="120" cy="30" r="6" fill="#818cf8" />
-              <text x="135" y="35" fontSize="13" fill="#818cf8">Followers</text>
-              <circle cx="220" cy="30" r="6" fill="#a78bfa" />
-              <text x="235" y="35" fontSize="13" fill="#a78bfa">Engagement</text>
-              <circle cx="340" cy="30" r="6" fill="#22d3ee" />
-              <text x="355" y="35" fontSize="13" fill="#22d3ee">Reach</text>
-            </g>
-          </svg>
-        </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)", minWidth: 320 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, color: "#181b20" }}>Platform Distribution</div>
-          {/* Simple SVG Pie Chart */}
-          <svg width="100%" height="200" viewBox="0 0 220 200">
-            {/* Pie slices */}
-            {(() => {
-              const total = platformPie.reduce((sum, p) => sum + p.value, 0);
-              let startAngle = 0;
-              return platformPie.map((p, i) => {
-                const angle = (p.value / total) * 2 * Math.PI;
-                const x1 = 110 + 90 * Math.cos(startAngle);
-                const y1 = 100 + 90 * Math.sin(startAngle);
-                const x2 = 110 + 90 * Math.cos(startAngle + angle);
-                const y2 = 100 + 90 * Math.sin(startAngle + angle);
-                const largeArc = angle > Math.PI ? 1 : 0;
-                // For label placement
-                const midAngle = startAngle + angle / 2;
-                const labelX = 110 + 70 * Math.cos(midAngle);
-                const labelY = 100 + 70 * Math.sin(midAngle);
-                const path = `M110,100 L${x1},${y1} A90,90 0 ${largeArc} 1 ${x2},${y2} Z`;
-                const label = `${p.label}: ${p.value.toLocaleString()}`;
-                const labelColor = p.color;
-                const textAnchor = labelX > 110 ? "start" : "end";
-                const labelFontSize = 15;
-                const labelYOffset = 6;
-                const result = [
-                  <path key={"slice-"+i} d={path} fill={p.color} stroke="#fff" strokeWidth="2" />,
-                  <text
-                    key={"label-"+i}
-                    x={labelX}
-                    y={labelY + labelYOffset}
-                    fontSize={labelFontSize}
-                    fill={labelColor}
-                    textAnchor={textAnchor}
-                    style={{ fontWeight: 500, pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {label}
-                  </text>
-                ];
-                startAngle += angle;
-                return result;
-              });
-            })()}
-          </svg>
-        </div>
-      </div>
-      {/* Engagement by Platform & Platform Performance */}
-      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1300, marginBottom: 32 }}>
-        <div style={{ flex: 2, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)", minWidth: 400 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, color: "#181b20" }}>Engagement by Platform</div>
-          {/* Simple SVG Bar Chart */}
-          <svg width="100%" height="200" viewBox="0 0 400 200">
-            {/* Axes */}
-            <line x1="40" y1="20" x2="40" y2="180" stroke="#e5e7eb" strokeWidth="2" />
-            <line x1="40" y1="180" x2="380" y2="180" stroke="#e5e7eb" strokeWidth="2" />
-            {/* Bars and value labels */}
-            {engagementBar.map((p, i) => {
-              const barX = 70 + i * 110;
-              const barY = 180 - (p.value / 6000) * 160;
-              const barHeight = (p.value / 6000) * 160;
-              return [
-                <rect
-                  key={"bar-"+i}
-                  x={barX}
-                  y={barY}
-                  width={60}
-                  height={barHeight}
-                  fill="#a78bfa"
-                  rx={8}
-                />,
-                <text
-                  key={"bar-label-"+i}
-                  x={barX + 30}
-                  y={barY - 8}
-                  fontSize="14"
-                  fill="#a78bfa"
-                  textAnchor="middle"
-                  style={{ fontWeight: 600 }}
-                >
-                  {p.value}
-                </text>
-              ];
-            })}
-            {/* X labels */}
-            {engagementBar.map((p, i) => (
-              <text key={i} x={100 + i * 110} y={195} fontSize="13" fill="#888" textAnchor="middle">{p.label}</text>
-            ))}
-            {/* Legend */}
-            <rect x="120" y="30" width="18" height="18" fill="#a78bfa" rx={4} />
-            <text x="145" y="44" fontSize="13" fill="#a78bfa">Engagement</text>
-          </svg>
-        </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)", minWidth: 320, display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8, color: "#181b20" }}>Platform Performance</div>
-          {platformPerf.map((p, i) => (
-            <div key={i} style={{ border: "1.5px solid #f3f4f6", borderRadius: 10, padding: 14, marginBottom: 4 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#181b20" }}>{p.name}</div>
-              <div style={{ color: "#888", fontSize: 13 }}>{p.handle}</div>
-              <div style={{ display: "flex", gap: 24, marginTop: 8 }}>
-                <div>
-                  <div style={{ color: "#888", fontSize: 13 }}>Followers</div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{p.followers}</div>
-                </div>
-                <div>
-                  <div style={{ color: "#888", fontSize: 13 }}>Engagement</div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{p.engagement ?? "-"}</div>
-                </div>
-              </div>
+      {/* ── Loading ── */}
+      {loading && (
+        <div className={styles.row}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className={`${styles.card} ${styles.skeleton}`}>
+              <div className={styles.skeletonLine} style={{ width: "60%" }} />
+              <div className={styles.skeletonLine} style={{ width: "40%", height: 32 }} />
+              <div className={styles.skeletonLine} style={{ width: "80%" }} />
             </div>
           ))}
         </div>
-      </div>
-      {/* Top Performing Posts */}
-      <div style={{ width: "100%", maxWidth: 900, background: "#fff", borderRadius: 16, padding: 32, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)", marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, color: "#181b20" }}>Top Performing Posts</div>
-        {topPosts.map((p, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 18, border: "1.5px solid #f3f4f6", borderRadius: 10, padding: 18, marginBottom: 12 }}>
-            <div style={{ background: "#818cf8", color: "#fff", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18 }}>{i + 1}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: "#181b20" }}>{p.title}</div>
-              <div style={{ color: "#888", fontSize: 14, display: "flex", gap: 18 }}>
-                <span>♡ {p.engagement} engagements</span>
-                <span>👁 {p.reach} reach</span>
+      )}
+
+      {/* ── Error ── */}
+      {error && !loading && (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>⚠️</span>
+          <p>{error}</p>
+          <button className={styles.emptyAction} onClick={fetchAnalytics}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* ── No org ── */}
+      {!organization && isSignedIn && !loading && (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>🏛️</span>
+          <p>Select or create an organization from the sidebar to get started.</p>
+        </div>
+      )}
+
+      {/* ── Data loaded ── */}
+      {metrics && !loading && !error && (
+        <>
+          {/* ── Overview metric cards ── */}
+          <div className={styles.row}>
+            <MetricCard
+              title="Total Engagement"
+              value={fmt(totalEngagement)}
+              sub={`${fmt(metrics.totalLikes)} likes · ${fmt(metrics.totalComments)} comments · ${fmt(metrics.totalShares)} shares`}
+              icon="❤️"
+              accent="rose"
+            />
+            <MetricCard
+              title="Total Reach"
+              value={fmt(metrics.totalReach)}
+              sub={`${fmt(metrics.totalImpressions)} impressions`}
+              icon="👁️"
+              accent="blue"
+            />
+            <MetricCard
+              title="Engagement Rate"
+              value={`${engagementRate}%`}
+              sub="(Likes + comments + shares) / impressions"
+              icon="📊"
+              accent="green"
+            />
+            <MetricCard
+              title="Platforms Tracked"
+              value={String(platforms.length)}
+              sub={platforms.length > 0 ? platforms.join(", ") : "No platform metrics yet"}
+              icon="🔗"
+              accent="violet"
+            />
+          </div>
+
+          {/* ── Growth Trends ── */}
+          {trendData.length >= 2 && (
+            <div className={styles.card} style={{ marginBottom: 24 }}>
+              <h2 className={styles.sectionTitle}>Growth Trends</h2>
+              <TrendChart data={trendData} />
+            </div>
+          )}
+
+          {/* ── Platform breakdown with bars ── */}
+          {platforms.length > 0 && (
+            <div className={styles.card} style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <h2 className={styles.sectionTitle} style={{ margin: 0 }}>Platform Breakdown</h2>
+                <div className={styles.tabs}>
+                  {(["engagement", "reach", "impressions"] as MetricTab[]).map((tab) => (
+                    <button
+                      key={tab}
+                      className={`${styles.tab} ${metricTab === tab ? styles.tabActive : ""}`}
+                      onClick={() => setMetricTab(tab)}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.platformGrid}>
+                {Object.entries(metrics.byPlatform).map(([platform, stats]) => {
+                  const engagement = stats.likes + stats.comments + stats.shares;
+                  let barValue: number;
+                  let barMax: number;
+                  let barDisplay: string;
+
+                  if (metricTab === "engagement") {
+                    barValue = engagement;
+                    barMax = maxPlatformEngagement;
+                    barDisplay = fmt(engagement);
+                  } else if (metricTab === "reach") {
+                    barValue = stats.reach;
+                    barMax = maxPlatformReach;
+                    barDisplay = fmt(stats.reach);
+                  } else {
+                    barValue = stats.impressions;
+                    barMax = maxPlatformImpressions;
+                    barDisplay = fmt(stats.impressions);
+                  }
+
+                  const pct = barMax > 0 ? (barValue / barMax) * 100 : 0;
+
+                  return (
+                    <div key={platform}>
+                      <div className={styles.platformRow}>
+                        <div className={styles.platformName}>
+                          <span
+                            className={styles.platformDot}
+                            style={{ background: platformColor(platform) }}
+                          />
+                          {platform}
+                        </div>
+                        <div className={styles.barWrap}>
+                          <div
+                            className={styles.barFill}
+                            style={{
+                              width: `${Math.max(pct, 2)}%`,
+                              background: platformColor(platform),
+                              opacity: 0.7,
+                            }}
+                          />
+                          <span className={styles.barLabel}>{barDisplay}</span>
+                        </div>
+                      </div>
+                      <div className={styles.platformStatRow}>
+                        <span>{fmt(stats.likes)} likes</span>
+                        <span>{fmt(stats.comments)} comments</span>
+                        <span>{fmt(stats.shares)} shares</span>
+                        <span>{fmt(stats.reach)} reach</span>
+                        <span>{fmt(stats.impressions)} impressions</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Two-column: Post engagement chart + Recent performance ── */}
+          <div className={styles.row}>
+            <div className={`${styles.card} ${styles.flexCard}`} style={{ flex: 1 }}>
+              <h3 className={styles.sectionTitle}>Post Engagement</h3>
+              {topPosts.length === 0 ? (
+                <div className={styles.emptyInline}>
+                  <span className={styles.emptyIcon}>📊</span>
+                  <p>No post engagement data yet.</p>
+                  <Link href="/post" className={styles.emptyAction}>
+                    Create a Post
+                  </Link>
+                </div>
+              ) : (
+                <div className={styles.chartWrap}>
+                  <div className={styles.engChart} style={{ paddingBottom: 28 }}>
+                    {topPosts.map((pw, i) => {
+                      const h = maxPostEng > 0 ? (pw.totalEngagement / maxPostEng) * 150 : 0;
+                      return (
+                        <div
+                          key={pw.post.id}
+                          className={styles.engBar}
+                          style={{
+                            height: Math.max(h, 4),
+                            background: CHART_COLORS[i % CHART_COLORS.length],
+                          }}
+                          title={pw.post.content.slice(0, 80)}
+                        >
+                          <span className={styles.engBarValue}>{fmt(pw.totalEngagement)}</span>
+                          <span className={styles.engBarLabel}>Post {i + 1}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={`${styles.card} ${styles.flexCard}`} style={{ flex: 1 }}>
+              <h3 className={styles.sectionTitle}>Recent Post Performance</h3>
+              {postsWithMetrics.length === 0 ? (
+                <div className={styles.emptyInline}>
+                  <span className={styles.emptyIcon}>🚀</span>
+                  <p>No published posts with metrics yet.</p>
+                  <Link href="/post" className={styles.emptyAction}>
+                    Publish a Post
+                  </Link>
+                </div>
+              ) : (
+                <div className={styles.recentList}>
+                  {postsWithMetrics.slice(0, 5).map((pw) => (
+                    <div key={pw.post.id} className={styles.itemCard}>
+                      <div className={styles.recentContent}>
+                        {pw.post.content.length > 100
+                          ? pw.post.content.slice(0, 100) + "…"
+                          : pw.post.content}
+                      </div>
+                      <div className={styles.recentMeta}>
+                        <span>{fmt(pw.totalEngagement)} engagement</span>
+                        <span>{fmt(pw.totalReach)} reach</span>
+                        <span>{fmt(pw.totalImpressions)} impressions</span>
+                        {pw.post.platforms.map((p) => (
+                          <span key={p} className={styles.platformBadge}>
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Top performing posts table ── */}
+          {postsWithMetrics.length > 0 && (
+            <div className={styles.card} style={{ marginBottom: 24 }}>
+              <h2 className={styles.sectionTitle}>Top Performing Posts</h2>
+              <div style={{ overflowX: "auto" }}>
+                <table className={styles.postTable}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Content</th>
+                      <th>Platforms</th>
+                      <th>Engagement</th>
+                      <th>Reach</th>
+                      <th>Impressions</th>
+                      <th>Eng. Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {postsWithMetrics.slice(0, 10).map((pw, i) => {
+                      const rate =
+                        pw.totalImpressions > 0
+                          ? ((pw.totalEngagement / pw.totalImpressions) * 100).toFixed(1)
+                          : "—";
+                      return (
+                        <tr key={pw.post.id}>
+                          <td>
+                            <span className={styles.postRank}>{i + 1}</span>
+                          </td>
+                          <td>
+                            <div className={styles.postContent}>
+                              {pw.post.content.length > 80
+                                ? pw.post.content.slice(0, 80) + "…"
+                                : pw.post.content}
+                            </div>
+                          </td>
+                          <td>
+                            {pw.post.platforms.map((p) => (
+                              <span key={p} className={styles.platformBadge}>
+                                {p}
+                              </span>
+                            ))}
+                          </td>
+                          <td>
+                            <span className={styles.postMetric}>{fmt(pw.totalEngagement)}</span>
+                          </td>
+                          <td>
+                            <span className={styles.postMetric}>{fmt(pw.totalReach)}</span>
+                          </td>
+                          <td>
+                            <span className={styles.postMetric}>{fmt(pw.totalImpressions)}</span>
+                          </td>
+                          <td>
+                            <span
+                              className={`${styles.engRateBadge} ${
+                                rate !== "—" && parseFloat(rate) < 1 ? styles.engRateBadgeLow : ""
+                              }`}
+                            >
+                              {rate === "—" ? rate : `${rate}%`}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── Insight summary cards ── */}
+          <div className={styles.insightsRow}>
+            <div className={styles.insightCard} style={{ borderTopColor: "#22c55e" }}>
+              <div className={styles.insightLabel} style={{ color: "#16a34a" }}>
+                📈 Top Platform
+              </div>
+              <div className={styles.insightValue}>{topPlatformByEngagement(metrics)}</div>
+              <div className={styles.insightSub}>Highest total engagement across all posts</div>
+            </div>
+            <div className={styles.insightCard} style={{ borderTopColor: "#8b5cf6" }}>
+              <div className={styles.insightLabel} style={{ color: "#7c3aed" }}>
+                🏆 Best Post
+              </div>
+              <div className={styles.insightValue}>
+                {postsWithMetrics[0]
+                  ? `${fmt(postsWithMetrics[0].totalEngagement)} engagements`
+                  : "—"}
+              </div>
+              <div className={styles.insightSub}>
+                {postsWithMetrics[0]
+                  ? postsWithMetrics[0].post.content.slice(0, 60) +
+                    (postsWithMetrics[0].post.content.length > 60 ? "…" : "")
+                  : "Publish posts to see insights"}
+              </div>
+            </div>
+            <div className={styles.insightCard} style={{ borderTopColor: "#3b82f6" }}>
+              <div className={styles.insightLabel} style={{ color: "#2563eb" }}>
+                🎯 Avg Engagement Rate
+              </div>
+              <div className={styles.insightValue}>{engagementRate}%</div>
+              <div className={styles.insightSub}>
+                {parseFloat(engagementRate) >= 3
+                  ? "Great rate! Keep it up"
+                  : parseFloat(engagementRate) >= 1
+                    ? "Solid rate — room to grow"
+                    : "Try different content formats to boost engagement"}
               </div>
             </div>
           </div>
+
+          {/* ── No data state ── */}
+          {totalEngagement === 0 && platforms.length === 0 && (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}>📈</span>
+              <p>
+                No analytics data yet. Publish posts to connected platforms and metrics will appear
+                here as they&apos;re collected.
+              </p>
+              <Link href="/post" className={styles.emptyAction}>
+                Create Your First Post
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Sub-components ───────────────────────────────────── */
+
+function MetricCard({
+  title,
+  value,
+  sub,
+  icon,
+  accent,
+}: {
+  title: string;
+  value: string;
+  sub?: string;
+  icon?: string;
+  accent?: string;
+}) {
+  const accentClass = accent ? styles[`accent_${accent}`] : "";
+  return (
+    <div className={`${styles.card} ${styles.metricCard} ${accentClass}`}>
+      <div className={styles.metricHeader}>
+        {icon && <span className={styles.metricIcon}>{icon}</span>}
+        <span className={styles.metricTitle}>{title}</span>
+      </div>
+      <div className={styles.metricValue}>{value}</div>
+      {sub && <div className={styles.metricSub}>{sub}</div>}
+    </div>
+  );
+}
+
+/* ── Helpers ──────────────────────────────────────────── */
+
+const CHART_COLORS = ["#8b5cf6", "#3b82f6", "#22c55e", "#f59e0b", "#f43f5e", "#06b6d4", "#ec4899", "#84cc16", "#6366f1", "#14b8a6"];
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return n.toLocaleString();
+}
+
+function platformColor(name: string): string {
+  const colors: Record<string, string> = {
+    Instagram: "#E1306C",
+    Facebook: "#1877F2",
+    "X (Twitter)": "#000",
+    YouTube: "#FF0000",
+    WhatsApp: "#25D366",
+    TikTok: "#010101",
+    LinkedIn: "#0A66C2",
+    Pinterest: "#E60023",
+  };
+  return colors[name] || "#6b7280";
+}
+
+function topPlatformByEngagement(metrics: OrgMetrics): string {
+  const entries = Object.entries(metrics.byPlatform);
+  if (entries.length === 0) return "—";
+  let best = entries[0];
+  for (const entry of entries) {
+    const eng = entry[1].likes + entry[1].comments + entry[1].shares;
+    const bestEng = best[1].likes + best[1].comments + best[1].shares;
+    if (eng > bestEng) best = entry;
+  }
+  return best[0];
+}
+
+/* ── Trend Chart ──────────────────────────────────────── */
+
+function TrendChart({ data }: { data: TrendPoint[] }) {
+  if (data.length < 2) return null;
+
+  const W = 600;
+  const H = 200;
+  const PAD = { top: 20, right: 20, bottom: 36, left: 56 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const series: { key: keyof TrendPoint; color: string; label: string }[] = [
+    { key: "impressions", color: "#22c55e", label: "Impressions" },
+    { key: "reach", color: "#3b82f6", label: "Reach" },
+    { key: "engagement", color: "#f43f5e", label: "Engagement" },
+  ];
+
+  const allValues = data.flatMap((d) => series.map((s) => d[s.key] as number));
+  const maxVal = Math.max(...allValues, 1);
+
+  function toX(i: number) {
+    return PAD.left + (i / (data.length - 1)) * chartW;
+  }
+  function toY(v: number) {
+    return PAD.top + chartH - (v / maxVal) * chartH;
+  }
+
+  return (
+    <div>
+      <div className={styles.trendLegend}>
+        {series.map((s) => (
+          <span key={s.key} className={styles.trendLegendItem}>
+            <span className={styles.trendLegendDot} style={{ background: s.color }} />
+            {s.label}
+          </span>
         ))}
       </div>
-      {/* Bottom Cards */}
-      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 900, marginBottom: 40 }}>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#16a34a", fontWeight: 700, fontSize: 15, marginBottom: 8 }}>↗ Best Performing Day</div>
-          <div style={{ fontWeight: 700, fontSize: 24, marginBottom: 4 }}>Sunday</div>
-          <div style={{ color: "#888", fontSize: 14 }}>28% higher engagement than average</div>
-        </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#818cf8", fontWeight: 700, fontSize: 15, marginBottom: 8 }}>💬 Most Engaging Content</div>
-          <div style={{ fontWeight: 700, fontSize: 24, marginBottom: 4 }}>Morning Posts</div>
-          <div style={{ color: "#888", fontSize: 14 }}>7-9 AM posts get 40% more engagement</div>
-        </div>
-        <div style={{ flex: 1, background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 8px 0 rgba(44, 62, 80, 0.10)" }}>
-          <div style={{ color: "#a78bfa", fontWeight: 700, fontSize: 15, marginBottom: 8 }}>🔗 Top Hashtag</div>
-          <div style={{ fontWeight: 700, fontSize: 24, marginBottom: 4 }}>#FaithJourney</div>
-          <div style={{ color: "#888", fontSize: 14 }}>Used in 67% of top posts</div>
-        </div>
-      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className={styles.trendSvg}>
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
+          const y = PAD.top + chartH - pct * chartH;
+          return (
+            <g key={pct}>
+              <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#e5e7eb" strokeWidth={1} />
+              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fill="#9ca3af" fontSize={10}>
+                {fmt(Math.round(maxVal * pct))}
+              </text>
+            </g>
+          );
+        })}
+        {/* Lines */}
+        {series.map((s) => {
+          const points = data.map((d, i) => `${toX(i)},${toY(d[s.key] as number)}`).join(" ");
+          return (
+            <g key={s.key}>
+              <polyline
+                points={points}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {data.map((d, i) => (
+                <circle
+                  key={i}
+                  cx={toX(i)}
+                  cy={toY(d[s.key] as number)}
+                  r={4}
+                  fill="#fff"
+                  stroke={s.color}
+                  strokeWidth={2}
+                />
+              ))}
+            </g>
+          );
+        })}
+        {/* X labels */}
+        {data.map((d, i) => (
+          <text
+            key={i}
+            x={toX(i)}
+            y={H - 6}
+            textAnchor="middle"
+            fill="#9ca3af"
+            fontSize={10}
+          >
+            {new Date(d.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </text>
+        ))}
+      </svg>
     </div>
   );
 }

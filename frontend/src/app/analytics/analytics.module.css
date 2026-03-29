@@ -1,0 +1,567 @@
+/* ── Layout ────────────────────────────────────────────── */
+
+.analyticsWrap {
+  padding: 32px;
+  background: #eef0f4;
+  min-height: 100vh;
+}
+
+.analyticsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.analyticsTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #181b20;
+  margin: 0 0 4px;
+}
+
+.analyticsSub {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.refreshBtn {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background 0.15s, color 0.15s;
+  margin-right: 48px;
+}
+.refreshBtn:hover {
+  background: #f3f4f6;
+  color: #181b20;
+}
+
+/* ── Row ──────────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* ── Cards ────────────────────────────────────────────── */
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 0;
+  flex: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s;
+}
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.flexCard {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Metric cards ─────────────────────────────────────── */
+
+.metricCard {
+  border-top: 3px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.metricHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metricIcon {
+  font-size: 1.3rem;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.metricTitle {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metricValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #181b20;
+  margin-bottom: 4px;
+}
+
+.metricSub {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+/* ── Accent colours ───────────────────────────────────── */
+
+.accent_rose {
+  border-top-color: #f43f5e;
+  background: linear-gradient(165deg, #fff5f7 0%, #fff 40%);
+}
+.accent_rose .metricValue { color: #be123c; }
+.accent_rose .metricIcon { background: #fff1f2; }
+
+.accent_blue {
+  border-top-color: #3b82f6;
+  background: linear-gradient(165deg, #eff6ff 0%, #fff 40%);
+}
+.accent_blue .metricValue { color: #1d4ed8; }
+.accent_blue .metricIcon { background: #eff6ff; }
+
+.accent_green {
+  border-top-color: #22c55e;
+  background: linear-gradient(165deg, #f0fdf4 0%, #fff 40%);
+}
+.accent_green .metricValue { color: #15803d; }
+.accent_green .metricIcon { background: #dcfce7; }
+
+.accent_violet {
+  border-top-color: #8b5cf6;
+  background: linear-gradient(165deg, #f5f3ff 0%, #fff 40%);
+}
+.accent_violet .metricValue { color: #6d28d9; }
+.accent_violet .metricIcon { background: #f5f3ff; }
+
+.accent_amber {
+  border-top-color: #f59e0b;
+  background: linear-gradient(165deg, #fffbeb 0%, #fff 40%);
+}
+.accent_amber .metricValue { color: #b45309; }
+.accent_amber .metricIcon { background: #fef3c7; }
+
+/* ── Section titles ───────────────────────────────────── */
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #181b20;
+  margin: 0 0 16px;
+}
+
+/* ── Platform breakdown bars ──────────────────────────── */
+
+.platformGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.platformRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.platformName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #181b20;
+  min-width: 140px;
+  font-size: 0.95rem;
+}
+
+.platformDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.barWrap {
+  flex: 1;
+  height: 28px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.barLabel {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.platformStatRow {
+  display: flex;
+  gap: 20px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  padding-left: 152px;
+}
+
+/* ── Top posts table ──────────────────────────────────── */
+
+.postTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.postTable th {
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e9ecf0;
+}
+
+.postTable td {
+  padding: 14px;
+  font-size: 0.92rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.postTable tr:last-child td {
+  border-bottom: none;
+}
+
+.postTable tbody tr {
+  transition: background 0.12s;
+}
+.postTable tbody tr:hover {
+  background: #f8f9fb;
+}
+
+.postContent {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.postRank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.postMetric {
+  font-weight: 600;
+  color: #181b20;
+}
+
+/* ── Platform badges ──────────────────────────────────── */
+
+.platformBadge {
+  display: inline-block;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+/* ── Engagement chart section ─────────────────────────── */
+
+.chartWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.engChart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 180px;
+  padding-top: 20px;
+}
+
+.engBar {
+  flex: 1;
+  min-width: 28px;
+  max-width: 56px;
+  border-radius: 6px 6px 0 0;
+  transition: height 0.4s ease;
+  position: relative;
+  cursor: default;
+}
+
+.engBarLabel {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.68rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.engBarValue {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* ── Tabs ─────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 20px;
+  width: fit-content;
+  border: 1px solid #d1d5db;
+}
+
+.tab {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: #374151;
+}
+
+.tabActive {
+  background: #fff;
+  color: #181b20;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Item card (reusable sub-cards inside sections) ───── */
+
+.itemCard {
+  background: #f8f9fb;
+  border: 1px solid #e9ecf0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.itemCard:hover {
+  background: #f1f3f7;
+  border-color: #d1d5db;
+}
+
+/* ── Recent posts ─────────────────────────────────────── */
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recentContent {
+  color: #374151;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.recentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+/* ── Insight cards ────────────────────────────────────── */
+
+.insightsRow {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.insightCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  flex: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-top: 3px solid transparent;
+}
+
+.insightLabel {
+  font-weight: 700;
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+}
+
+.insightValue {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #181b20;
+  margin-bottom: 4px;
+}
+
+.insightSub {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+/* ── Empty states ─────────────────────────────────────── */
+
+.emptyState {
+  text-align: center;
+  padding: 64px 24px;
+  color: #6b7280;
+}
+
+.emptyInline {
+  text-align: center;
+  padding: 24px 12px;
+  color: #9ca3af;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.emptyAction {
+  margin-top: 12px;
+  display: inline-block;
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.emptyAction:hover {
+  background: #6d28d9;
+}
+
+/* ── Skeletons ────────────────────────────────────────── */
+
+.skeleton {
+  min-height: 110px;
+}
+
+.skeletonLine {
+  height: 14px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Engagement rate badge ────────────────────────────── */
+
+.engRateBadge {
+  display: inline-block;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.engRateBadgeLow {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ── Trend chart ──────────────────────────────────────── */
+
+.trendSvg {
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+}
+
+.trendLegend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.trendLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.trendLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

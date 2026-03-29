@@ -53,12 +53,20 @@ interface DashboardData {
   platforms: PlatformConnection[];
 }
 
+interface TrendPoint {
+  date: string;
+  engagement: number;
+  reach: number;
+  impressions: number;
+}
+
 /* ── Main Dashboard ───────────────────────────────────── */
 
 export default function DashboardPage() {
   const { getToken, isSignedIn } = useAuth();
   const { organization } = useOrganization();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,6 +102,37 @@ export default function DashboardPage() {
       ]);
 
       setData({ metrics, posts, scheduled, series, platforms });
+
+      // Fetch history for growth trends
+      const published = (posts as Post[]).filter(
+        (p: Post) => p.status === "published" || p.status === "partially_failed",
+      );
+      const historyResults = await Promise.all(
+        published.slice(0, 15).map(async (post: Post) => {
+          try {
+            const res = await fetch(`/api/metrics/${orgId}/post/${post.id}/history`, { headers });
+            if (!res.ok) return [];
+            const d = await res.json();
+            return Array.isArray(d) ? d : [];
+          } catch {
+            return [];
+          }
+        }),
+      );
+      const allSnapshots = historyResults.flat();
+      const byDate: Record<string, { engagement: number; reach: number; impressions: number }> = {};
+      for (const snap of allSnapshots) {
+        const day = new Date(snap.fetchedAt).toISOString().split("T")[0];
+        if (!byDate[day]) byDate[day] = { engagement: 0, reach: 0, impressions: 0 };
+        byDate[day].engagement += (snap.likes || 0) + (snap.comments || 0) + (snap.shares || 0);
+        byDate[day].reach += snap.reach || 0;
+        byDate[day].impressions += snap.impressions || 0;
+      }
+      setTrendData(
+        Object.entries(byDate)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, vals]) => ({ date, ...vals })),
+      );
     } catch {
       setError("Failed to load dashboard data. Make sure your services are running.");
     } finally {
@@ -217,6 +256,14 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── Growth Trends ────────────────── */}
+          {trendData.length >= 2 && (
+            <div className={styles.dashboardCard} style={{ marginBottom: 24 }}>
+              <h2 className={styles.sectionTitle}>Growth Trends</h2>
+              <DashTrendChart data={trendData} />
             </div>
           )}
 
@@ -401,4 +448,96 @@ function platformColor(name: string): string {
     WhatsApp: "#25D366",
   };
   return colors[name] ?? "#6b7280";
+}
+
+/* ── Dashboard Trend Chart ────────────────────────────── */
+
+function DashTrendChart({ data }: { data: TrendPoint[] }) {
+  if (data.length < 2) return null;
+
+  const W = 600;
+  const H = 200;
+  const PAD = { top: 20, right: 20, bottom: 36, left: 56 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const series: { key: keyof TrendPoint; color: string; label: string }[] = [
+    { key: "impressions", color: "#22c55e", label: "Impressions" },
+    { key: "reach", color: "#3b82f6", label: "Reach" },
+    { key: "engagement", color: "#f43f5e", label: "Engagement" },
+  ];
+
+  const allValues = data.flatMap((d) => series.map((s) => d[s.key] as number));
+  const maxVal = Math.max(...allValues, 1);
+
+  function toX(i: number) {
+    return PAD.left + (i / (data.length - 1)) * chartW;
+  }
+  function toY(v: number) {
+    return PAD.top + chartH - (v / maxVal) * chartH;
+  }
+
+  return (
+    <div>
+      <div className={styles.trendLegend}>
+        {series.map((s) => (
+          <span key={s.key} className={styles.trendLegendItem}>
+            <span className={styles.trendLegendDot} style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className={styles.trendSvg}>
+        {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
+          const y = PAD.top + chartH - pct * chartH;
+          return (
+            <g key={pct}>
+              <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#e5e7eb" strokeWidth={1} />
+              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fill="#9ca3af" fontSize={10}>
+                {fmt(Math.round(maxVal * pct))}
+              </text>
+            </g>
+          );
+        })}
+        {series.map((s) => {
+          const points = data.map((d, i) => `${toX(i)},${toY(d[s.key] as number)}`).join(" ");
+          return (
+            <g key={s.key}>
+              <polyline
+                points={points}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {data.map((d, i) => (
+                <circle
+                  key={i}
+                  cx={toX(i)}
+                  cy={toY(d[s.key] as number)}
+                  r={4}
+                  fill="#fff"
+                  stroke={s.color}
+                  strokeWidth={2}
+                />
+              ))}
+            </g>
+          );
+        })}
+        {data.map((d, i) => (
+          <text
+            key={i}
+            x={toX(i)}
+            y={H - 6}
+            textAnchor="middle"
+            fill="#9ca3af"
+            fontSize={10}
+          >
+            {new Date(d.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
 }
