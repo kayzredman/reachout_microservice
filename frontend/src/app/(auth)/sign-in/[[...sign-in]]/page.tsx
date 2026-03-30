@@ -7,35 +7,42 @@ import styles from "../../auth.module.css";
 export default function SignInPage() {
   return (
     <div className={styles.authPage}>
-      <div className={styles.authContainer}>
+      {/* Reversed: form on LEFT, brand panel on RIGHT */}
+      <div className={styles.authContainerReversed}>
+        {/* ── Brand panel (right side) — pitch sign-up ── */}
         <div className={styles.brandPanel}>
           <div className={styles.brandLogo}>
             Faith<span>Reach</span>
           </div>
-          <h1 className={styles.brandTitle}>Welcome back</h1>
+          <h1 className={styles.brandTitle}>Get started free</h1>
           <p className={styles.brandSubtitle}>
-            Sign in to manage your content, schedule posts, and grow your
-            faith-based community.
+            Create your account and start reaching your community with
+            faith-driven content in minutes.
           </p>
           <ul className={styles.brandFeatures}>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              Multi-platform publishing
+              No credit card required
             </li>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              AI-powered content assistant
+              Set up in under 2 minutes
             </li>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              Analytics &amp; engagement tracking
+              Connect your social accounts
             </li>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              Smart scheduling &amp; planner
+              Start publishing immediately
             </li>
           </ul>
+          <Link href="/sign-up" className={styles.brandCta}>
+            Sign Up
+          </Link>
         </div>
+
+        {/* ── Clerk sign-in form (left side) ── */}
         <div className={styles.clerkPanel}>
           <div>
             <SignIn
@@ -47,16 +54,20 @@ export default function SignInPage() {
                     border: "none",
                     width: "100%",
                   },
+                  socialButtonsIconButton: {
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                  },
+                },
+                layout: {
+                  socialButtonsPlacement: "top",
+                  socialButtonsVariant: "iconButton",
                 },
               }}
               fallbackRedirectUrl="/dashboard"
             />
-            <div className={styles.switchText}>
-              Don&apos;t have an account?{" "}
-              <Link href="/sign-up" className={styles.switchLink}>
-                Sign up
-              </Link>
-            </div>
           </div>
         </div>
       </div>

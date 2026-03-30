@@ -31,7 +31,9 @@ export default function UserMenu() {
     return <div style={{ position: "fixed", top: 16, right: 24, zIndex: 200 }}><UserButton /></div>;
   }
 
-  if (!isHome) {
+  const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+
+  if (!isHome && !isAuthPage) {
     return <div style={{ position: "fixed", top: 16, right: 24, zIndex: 200 }}><SignInButton mode="modal">{signInButtonChild}</SignInButton></div>;
   }
 

@@ -1,10 +1,11 @@
+/* ── Auth Page ────────────────────────────────── */
 .authPage {
   min-height: 100vh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+  background: #1a1030;
   position: relative;
   overflow: hidden;
 }
@@ -16,24 +17,32 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 30% 40%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
-              radial-gradient(circle at 70% 60%, rgba(45, 225, 252, 0.06) 0%, transparent 50%);
+  background: radial-gradient(circle at 30% 40%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(91, 33, 182, 0.08) 0%, transparent 50%);
   pointer-events: none;
 }
 
+/* ── Container ───────────────────────────────── */
 .authContainer {
   display: flex;
-  width: 100%;
-  max-width: 960px;
-  min-height: 560px;
+  width: 92%;
+  max-width: 860px;
+  min-height: 520px;
+  max-height: 90vh;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 1;
-  margin: 24px;
 }
 
+/* Reversed: form on left, brand on right (sign-in page) */
+.authContainerReversed {
+  composes: authContainer;
+  flex-direction: row-reverse;
+}
+
+/* ── Brand (gradient) Panel ──────────────────── */
 .brandPanel {
   flex: 1;
   display: flex;
@@ -42,6 +51,7 @@
   padding: 48px;
   background: linear-gradient(160deg, #7c3aed 0%, #5b21b6 100%);
   color: #fff;
+  animation: brandSlideIn 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .brandLogo {
@@ -74,6 +84,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-bottom: 36px;
 }
 
 .brandFeatures li {
@@ -85,8 +96,8 @@
 }
 
 .featureIcon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: rgba(45, 225, 252, 0.2);
   display: flex;
@@ -96,38 +107,92 @@
   flex-shrink: 0;
 }
 
+/* CTA button on brand panel (e.g. "SIGN UP" / "SIGN IN") */
+.brandCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 36px;
+  border-radius: 50px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: flex-start;
+}
+
+.brandCta:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #fff;
+  transform: translateY(-1px);
+}
+
+/* ── Clerk (form) Panel ──────────────────────── */
 .clerkPanel {
-  flex: 1;
+  flex: 1.1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 32px 28px;
   background: #fff;
+  animation: formFadeIn 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.15s both;
+  overflow-y: auto;
 }
 
-.switchText {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #64748b;
+/* ── Animations ──────────────────────────────── */
+@keyframes brandSlideIn {
+  0% {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
-.switchLink {
-  color: #7c3aed;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
+@keyframes formFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.switchLink:hover {
-  text-decoration: underline;
+/* Reversed panel animates from the other side */
+.authContainerReversed .brandPanel {
+  animation-name: brandSlideInReverse;
 }
 
-@media (max-width: 768px) {
-  .authContainer {
+@keyframes brandSlideInReverse {
+  0% {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 900px) {
+  .authContainer,
+  .authContainerReversed {
     flex-direction: column;
-    max-width: 100%;
+    width: 95%;
+    max-width: 460px;
     min-height: auto;
+    max-height: none;
     margin: 0;
     border-radius: 0;
   }
@@ -144,6 +209,10 @@
 
   .brandFeatures {
     display: none;
+  }
+
+  .brandCta {
+    align-self: center;
   }
 
   .clerkPanel {

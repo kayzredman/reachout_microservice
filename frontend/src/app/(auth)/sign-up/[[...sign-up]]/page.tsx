@@ -7,35 +7,42 @@ import styles from "../../auth.module.css";
 export default function SignUpPage() {
   return (
     <div className={styles.authPage}>
+      {/* Normal: brand panel on LEFT, form on RIGHT */}
       <div className={styles.authContainer}>
+        {/* ── Brand panel (left side) — pitch sign-in ── */}
         <div className={styles.brandPanel}>
           <div className={styles.brandLogo}>
             Faith<span>Reach</span>
           </div>
-          <h1 className={styles.brandTitle}>Get started free</h1>
+          <h1 className={styles.brandTitle}>Welcome back</h1>
           <p className={styles.brandSubtitle}>
-            Create your account and start reaching your community with
-            faith-driven content in minutes.
+            Sign in to manage your content, schedule posts, and grow your
+            faith-based community.
           </p>
           <ul className={styles.brandFeatures}>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              No credit card required
+              Multi-platform publishing
             </li>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              Set up in under 2 minutes
+              AI-powered content assistant
             </li>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              Connect your social accounts
+              Analytics &amp; engagement tracking
             </li>
             <li>
               <span className={styles.featureIcon}>&#10003;</span>
-              Start publishing immediately
+              Smart scheduling &amp; planner
             </li>
           </ul>
+          <Link href="/sign-in" className={styles.brandCta}>
+            Sign In
+          </Link>
         </div>
+
+        {/* ── Clerk sign-up form (right side) ── */}
         <div className={styles.clerkPanel}>
           <div>
             <SignUp
@@ -47,16 +54,20 @@ export default function SignUpPage() {
                     border: "none",
                     width: "100%",
                   },
+                  socialButtonsIconButton: {
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                  },
+                },
+                layout: {
+                  socialButtonsPlacement: "top",
+                  socialButtonsVariant: "iconButton",
                 },
               }}
               fallbackRedirectUrl="/dashboard"
             />
-            <div className={styles.switchText}>
-              Already have an account?{" "}
-              <Link href="/sign-in" className={styles.switchLink}>
-                Sign in
-              </Link>
-            </div>
           </div>
         </div>
       </div>

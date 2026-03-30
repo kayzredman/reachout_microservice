@@ -11,7 +11,7 @@ export default function HideSidebarOnHome({ children }: { children: React.ReactN
   return (
     <>
       {showSidebar && <Sidebar />}
-      <main className={styles.mainContent}>{children}</main>
+      <main className={showSidebar ? styles.mainContent : undefined}>{children}</main>
     </>
   );
 }
