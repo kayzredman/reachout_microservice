@@ -1,0 +1,419 @@
+[
+  {
+    "id": "30-day-faith-challenge",
+    "name": "30-Day Faith Challenge",
+    "description": "A month-long journey through daily scripture readings and reflective prompts to deepen your congregation's faith.",
+    "icon": "🔥",
+    "color": "#8b5cf6",
+    "suggestedDuration": 30,
+    "suggestedPostsPerWeek": 7,
+    "suggestedPlatforms": ["Instagram", "Facebook"],
+    "themes": ["faith", "hope", "prayer", "gratitude", "love", "courage", "peace", "trust"],
+    "postPatterns": [
+      {
+        "format": "challenge",
+        "templates": [
+          "Day {n} of our {seriesTitle} 🔥\n\n\"{scriptureText}\" — {scriptureRef}\n\nToday's challenge: {reflection}\n\nShare your thoughts below! 👇 #{hashtag}",
+          "🙏 {seriesTitle} — Day {n}\n\n📖 {scriptureRef}: \"{scriptureText}\"\n\n💭 {reflection}\n\nTag someone who needs this today! #{hashtag}",
+          "Day {n} ✨\n\n{scriptureText}\n— {scriptureRef}\n\n{reflection}\n\nDrop a 🙌 if this speaks to you! #{hashtag}"
+        ]
+      }
+    ],
+    "reflections": [
+      "Write down three ways God has shown up for you this week.",
+      "Take 5 minutes to sit in silence and listen for God's voice.",
+      "Send an encouraging text to someone who might be struggling.",
+      "Journal about a time when God turned your weakness into strength.",
+      "Pray for someone you haven't spoken to in a while.",
+      "List five things you're grateful for right now.",
+      "Read this verse three times slowly. What stands out to you?",
+      "Share this verse with someone who needs to hear it today.",
+      "Spend 10 minutes in prayer — no requests, just praise.",
+      "Memorize today's verse and carry it with you all day.",
+      "Reflect on how this verse applies to a current challenge in your life.",
+      "Write a prayer based on today's scripture.",
+      "Think about one person who models this verse. Reach out to thank them.",
+      "How has your faith grown since you started this challenge?",
+      "What does walking by faith look like in your everyday life?",
+      "Choose one action today that reflects this scripture.",
+      "Share your favorite verse from this challenge so far.",
+      "Turn today's verse into a prayer you pray throughout the day.",
+      "Invite someone to join you for the rest of this challenge.",
+      "Look for evidence of God's faithfulness in your day today.",
+      "Write a letter to your future self about what God is teaching you.",
+      "Fast from social media for one hour and spend it in the Word.",
+      "Ask God to reveal one area where you can trust Him more.",
+      "Encourage someone today with words that reflect this verse.",
+      "What is one step of faith God is asking you to take?",
+      "Worship in a way that's outside your comfort zone today.",
+      "Read an extra chapter of the Bible today as an act of devotion.",
+      "Thank God for three prayers He has answered recently.",
+      "Share your testimony of what this challenge has meant to you.",
+      "Commit to one spiritual habit you'll continue after this challenge ends."
+    ]
+  },
+  {
+    "id": "weekly-sermon-series",
+    "name": "Weekly Sermon Series",
+    "description": "Promote your Sunday sermons with engaging posts throughout the week — teasers, recaps, and discussion prompts.",
+    "icon": "🎤",
+    "color": "#3b82f6",
+    "suggestedDuration": 42,
+    "suggestedPostsPerWeek": 3,
+    "suggestedPlatforms": ["Instagram", "Facebook", "X (Twitter)"],
+    "themes": ["faith", "hope", "peace", "courage", "purpose", "wisdom"],
+    "postPatterns": [
+      {
+        "format": "teaser",
+        "templates": [
+          "This Sunday 🎤\n\n\"{seriesTitle}\" — Week {n}\n\n\"{scriptureText}\" — {scriptureRef}\n\nJoin us at 10 AM as we explore {themeDescription}. You don't want to miss this! 🙏",
+          "📢 Coming this Sunday!\n\n{seriesTitle} continues with Part {n}: {themeTitle}\n\n{scriptureRef} reminds us: \"{scriptureText}\"\n\nInvite someone to join you! 🤝"
+        ]
+      },
+      {
+        "format": "recap",
+        "templates": [
+          "Missed Sunday's sermon? Here's the key takeaway from {seriesTitle} Week {n}:\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nFull sermon available on our website! 🔗",
+          "✨ Sunday Sermon Recap\n\n{seriesTitle} — Part {n}\n\nBig idea: {reflection}\n\n📖 {scriptureRef}\n\nWhat stood out to you? Share below! 👇"
+        ]
+      },
+      {
+        "format": "discussion",
+        "templates": [
+          "Midweek Discussion 💬\n\nFrom {seriesTitle} Week {n}:\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nHow has this truth shown up in your life this week?"
+        ]
+      }
+    ],
+    "reflections": [
+      "How can we find peace when the storms of life feel overwhelming?",
+      "What does it mean to truly trust God with our future?",
+      "In what ways is God calling you to step out in faith?",
+      "How do we balance planning for tomorrow while trusting God today?",
+      "What areas of your life need to be surrendered to God?",
+      "How does community strengthen our walk with God?",
+      "What does authentic worship look like in your daily life?",
+      "How can we be salt and light in our workplaces and schools?",
+      "What does it look like to love our neighbors well?",
+      "How do we handle doubt without losing faith?",
+      "What spiritual disciplines are helping you grow right now?",
+      "How do we stay rooted in God's Word during busy seasons?"
+    ]
+  },
+  {
+    "id": "prayer-journey",
+    "name": "21-Day Prayer Journey",
+    "description": "Guide your community through a focused season of prayer with daily prompts, scriptures, and reflection points.",
+    "icon": "🙏",
+    "color": "#22c55e",
+    "suggestedDuration": 21,
+    "suggestedPostsPerWeek": 7,
+    "suggestedPlatforms": ["Instagram", "Facebook", "WhatsApp"],
+    "themes": ["prayer", "faith", "gratitude", "trust", "peace", "forgiveness"],
+    "postPatterns": [
+      {
+        "format": "prayer-prompt",
+        "templates": [
+          "🙏 Day {n} — {seriesTitle}\n\nPrayer Focus: {themeTitle}\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nPray with us today. Drop a 🙏 to let us know you're joining!",
+          "Day {n} of our {seriesTitle} 🕊️\n\n📖 {scriptureRef}\n\"{scriptureText}\"\n\nToday's Prayer Focus:\n{reflection}\n\nLet's lift this up together!",
+          "Prayer Journey — Day {n} 🌅\n\n{reflection}\n\n\"{scriptureText}\"\n— {scriptureRef}\n\nType AMEN if you're praying along 🙌"
+        ]
+      }
+    ],
+    "reflections": [
+      "Pray for your family — for protection, unity, and spiritual growth.",
+      "Lift up your church leaders today. Pray for wisdom and endurance.",
+      "Pray for someone who doesn't yet know Jesus. Ask God to open their heart.",
+      "Thank God for 5 specific blessings in your life right now.",
+      "Pray for your community — for safety, healing, and hope.",
+      "Ask God to reveal any unforgiveness you're holding onto.",
+      "Pray for the nations and for missionaries serving around the world.",
+      "Lift up anyone you know who is sick or struggling today.",
+      "Pray for wisdom in your decisions this week.",
+      "Spend time simply praising God — no requests, just adoration.",
+      "Pray for children and youth in your church and community.",
+      "Ask the Holy Spirit to guide your words and actions today.",
+      "Pray for your workplace — colleagues, leaders, and your witness there.",
+      "Lift up marriages and families in your church.",
+      "Pray for revival in your city and nation.",
+      "Ask God to grow your compassion for the hurting and the lost.",
+      "Pray for financial provision and generosity in your community.",
+      "Lift up those serving in the military and first responders.",
+      "Pray that God would use your church to transform your neighborhood.",
+      "Thank God for answered prayers and praise Him for what's coming.",
+      "Commit to continued prayer beyond this journey. What will you keep praying for?"
+    ]
+  },
+  {
+    "id": "easter-campaign",
+    "name": "Easter Outreach Campaign",
+    "description": "Build excitement and invite your community to Easter services with a multi-week countdown, devotionals, and invitations.",
+    "icon": "✝️",
+    "color": "#f59e0b",
+    "suggestedDuration": 21,
+    "suggestedPostsPerWeek": 4,
+    "suggestedPlatforms": ["Instagram", "Facebook", "X (Twitter)", "WhatsApp"],
+    "themes": ["hope", "love", "forgiveness", "joy", "faith"],
+    "postPatterns": [
+      {
+        "format": "countdown",
+        "templates": [
+          "✝️ {daysUntil} days until Easter!\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nInvite someone to join you for Easter Sunday! 🙏",
+          "Easter is coming! 🌷\n\n{seriesTitle} — Day {n}\n\n📖 {scriptureRef}: \"{scriptureText}\"\n\nSave the date and bring a friend! #{hashtag}"
+        ]
+      },
+      {
+        "format": "devotional",
+        "templates": [
+          "🌅 Easter Devotional — Day {n}\n\n{reflection}\n\n\"{scriptureText}\" — {scriptureRef}\n\nAs we prepare for Easter, let this truth sink deep into your heart.",
+          "Preparing our hearts for Easter ✝️\n\nDay {n}: {themeTitle}\n\n{scriptureRef} says: \"{scriptureText}\"\n\n{reflection}"
+        ]
+      },
+      {
+        "format": "invitation",
+        "templates": [
+          "🐣 You're invited!\n\nEaster Sunday at {churchName}\n\n{reflection}\n\nBring your family, bring your friends. Everyone is welcome!\n\n#EasterSunday #{hashtag}",
+          "This Easter, discover the hope that changes everything ✝️\n\nJoin us for a special Easter celebration.\n\n\"{scriptureText}\" — {scriptureRef}\n\nDoors open early. We saved a seat for you! 🪑"
+        ]
+      }
+    ],
+    "reflections": [
+      "Easter reminds us that death doesn't have the final word — hope does.",
+      "The cross shows us the depth of God's love. Nothing can separate us from it.",
+      "Because He lives, we can face tomorrow with confidence.",
+      "Easter is more than a holiday — it's the foundation of our faith.",
+      "The empty tomb changes everything. What once was lost has been found.",
+      "Invite someone who might be searching for hope this Easter.",
+      "Jesus conquered the grave so we could live with purpose and joy.",
+      "The resurrection proves that God keeps every promise.",
+      "Who will you invite to experience the love of Christ this Easter?",
+      "Let's celebrate the greatest comeback in history together!",
+      "The same power that raised Jesus from the dead lives in you.",
+      "Easter is the perfect time to start fresh with God."
+    ]
+  },
+  {
+    "id": "christmas-advent",
+    "name": "Christmas Advent Series",
+    "description": "Countdown to Christmas with daily devotionals covering the themes of Hope, Peace, Joy, and Love during the Advent season.",
+    "icon": "🎄",
+    "color": "#dc2626",
+    "suggestedDuration": 25,
+    "suggestedPostsPerWeek": 7,
+    "suggestedPlatforms": ["Instagram", "Facebook", "WhatsApp"],
+    "themes": ["hope", "peace", "joy", "love", "gratitude", "worship"],
+    "postPatterns": [
+      {
+        "format": "advent",
+        "templates": [
+          "🎄 Advent Day {n}\n\nTheme: {themeTitle}\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\n🕯️ Light your candle and reflect today. #Advent #{hashtag}",
+          "Day {n} — Advent Devotional 🕯️\n\n📖 {scriptureRef}\n\"{scriptureText}\"\n\n{reflection}\n\n{daysUntil} days until Christmas!",
+          "✨ {seriesTitle} — Day {n}\n\nToday's focus: {themeTitle}\n\n{reflection}\n\n\"{scriptureText}\"\n— {scriptureRef}\n\nMerry Christmas is coming! 🎁"
+        ]
+      }
+    ],
+    "reflections": [
+      "Today we light the candle of Hope. What are you hoping for this Christmas?",
+      "The Prince of Peace was born in a humble manger. Where do you need His peace today?",
+      "Joy to the world! How can you spread joy to someone today?",
+      "God's love came down at Christmas. Who can you show love to this week?",
+      "Emmanuel — God with us. You are never alone.",
+      "The shepherds left everything to see Jesus. What might God be calling you to?",
+      "The wise men brought gifts. What gift can you offer God today?",
+      "Mary pondered these things in her heart. Take time to quietly reflect today.",
+      "A star guided the way to Jesus. How is God guiding you right now?",
+      "The angels announced good news of great joy. Share the good news with someone!",
+      "In the busyness of the season, pause to remember the reason we celebrate.",
+      "Just as the magi traveled far, our faith sometimes requires a journey of trust.",
+      "The light came into the darkness, and the darkness has not overcome it.",
+      "This Christmas, open your heart to receive the greatest gift ever given.",
+      "Unto us a child is born! Celebrate the miracle of Christ's birth today.",
+      "What gift of generosity can you give this Christmas season?",
+      "Remember those who are lonely or hurting this Christmas. Reach out with love.",
+      "The Christmas story is for everyone — who can you share it with?",
+      "Take time today to read Luke 2 as a family.",
+      "Sing a Christmas hymn and let its message fill your heart.",
+      "Reflect on God's faithfulness throughout this year.",
+      "Write a prayer of thanks for the gift of Jesus.",
+      "Christmas Eve — the wait is almost over. Prepare your heart.",
+      "Merry Christmas! He is here. Emmanuel. God with us.",
+      "As Christmas Day closes, carry the spirit of Christ with you into the new year."
+    ]
+  },
+  {
+    "id": "youth-ministry",
+    "name": "Youth Ministry Series",
+    "description": "Engaging, high-energy content designed for teens and young adults — relatable language, real-life application, and faith building.",
+    "icon": "⚡",
+    "color": "#ec4899",
+    "suggestedDuration": 28,
+    "suggestedPostsPerWeek": 3,
+    "suggestedPlatforms": ["Instagram", "X (Twitter)"],
+    "themes": ["courage", "purpose", "faith", "community", "strength", "wisdom"],
+    "postPatterns": [
+      {
+        "format": "youth",
+        "templates": [
+          "⚡ Real Talk — Week {n}\n\n{reflection}\n\n\"{scriptureText}\" — {scriptureRef}\n\nThis hits different when you actually live it out. 💯 #{hashtag}",
+          "Hey fam 👋\n\nWeek {n} of {seriesTitle}:\n\n📖 {scriptureRef}: \"{scriptureText}\"\n\n{reflection}\n\nDrop a 🔥 if this speaks to you!",
+          "No cap — this verse goes hard 💪\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nTag your squad! #{hashtag}"
+        ]
+      }
+    ],
+    "reflections": [
+      "You don't have to have it all figured out. God meets you right where you are.",
+      "Being different isn't a weakness — it's your superpower in God's kingdom.",
+      "Your identity isn't defined by likes or followers. It's defined by God.",
+      "It's okay to have questions about your faith. That's how you grow.",
+      "God didn't create you to fit in. He created you to stand out.",
+      "Pressure to be perfect? Jesus already handled that. Just be real.",
+      "Your mistakes don't disqualify you from God's purpose for your life.",
+      "True friends point you towards Jesus, not away from Him.",
+      "Social media shows highlights. God sees the full story — and He still loves you.",
+      "You have something to offer this world that no one else can. Don't hold back.",
+      "It takes courage to follow Jesus when everyone else is going the other direction.",
+      "God's plans for you are bigger than anything you could scroll past online."
+    ]
+  },
+  {
+    "id": "community-outreach",
+    "name": "Community Outreach Campaign",
+    "description": "Rally your church to serve the community with volunteer drives, event promotions, and impact stories.",
+    "icon": "🤝",
+    "color": "#06b6d4",
+    "suggestedDuration": 14,
+    "suggestedPostsPerWeek": 4,
+    "suggestedPlatforms": ["Instagram", "Facebook", "X (Twitter)", "WhatsApp"],
+    "themes": ["service", "love", "community", "gratitude", "purpose"],
+    "postPatterns": [
+      {
+        "format": "outreach",
+        "templates": [
+          "🤝 {seriesTitle} — Week {n}\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nWant to get involved? Drop a comment or DM us! 💪 #{hashtag}",
+          "Making a difference together! 🌍\n\n{seriesTitle} update:\n{reflection}\n\n📖 {scriptureRef} reminds us why we serve.\n\nVolunteer sign-up link in bio! #{hashtag}",
+          "Our community needs us 🤲\n\n{reflection}\n\n\"{scriptureText}\" — {scriptureRef}\n\nJoin us this weekend as we put our faith into action! #{hashtag}"
+        ]
+      }
+    ],
+    "reflections": [
+      "This weekend: help us pack 200 food boxes for families in need. Sign up today!",
+      "Every act of kindness matters. What's one way you can serve someone today?",
+      "Volunteer spotlight: celebrating the unsung heroes in our community.",
+      "We're collecting school supplies for local families. Can you contribute?",
+      "Our neighborhood clean-up made a visible difference. Thank you to every volunteer!",
+      "Serving others isn't just something we do — it's who we are.",
+      "This Saturday: free community breakfast for anyone who needs a warm meal.",
+      "Thank you to everyone who donated! Together we raised enough to support 50 families.",
+      "Looking for ways to get involved? We have opportunities for every schedule.",
+      "When the church goes outside its walls, amazing things happen.",
+      "Our next outreach event is coming up. Bring your family and make a memory that matters.",
+      "Impact report: see what God accomplished through our community efforts this month."
+    ]
+  },
+  {
+    "id": "bible-study",
+    "name": "Bible Study Series",
+    "description": "Walk your community through a book of the Bible with daily or weekly study notes, discussion questions, and key insights.",
+    "icon": "📖",
+    "color": "#0ea5e9",
+    "suggestedDuration": 28,
+    "suggestedPostsPerWeek": 3,
+    "suggestedPlatforms": ["Instagram", "Facebook"],
+    "themes": ["wisdom", "faith", "purpose", "trust", "hope", "prayer"],
+    "postPatterns": [
+      {
+        "format": "study",
+        "templates": [
+          "📖 {seriesTitle} — Week {n}\n\nThis week's reading: {scriptureRef}\n\n\"{scriptureText}\"\n\n{reflection}\n\nShare your takeaway below! 👇 #{hashtag}",
+          "Bible Study Deep Dive 🔍\n\n{seriesTitle} — Part {n}\n\n📖 {scriptureRef}\n\"{scriptureText}\"\n\n💭 Discussion: {reflection}",
+          "📚 Week {n} Study Notes\n\nKey verse: \"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nJoin us this week as we unpack this passage together! #{hashtag}"
+        ]
+      }
+    ],
+    "reflections": [
+      "What does this passage reveal about God's character?",
+      "How does this apply to a situation you're currently facing?",
+      "What promise is God making in this passage? How can you claim it?",
+      "Is there a command here that challenges your current lifestyle?",
+      "How does this passage connect to the bigger story of the Bible?",
+      "What cultural context helps us understand this verse better?",
+      "Write this verse in your own words. What does it mean to you personally?",
+      "If you could ask the author one question about this passage, what would it be?",
+      "How does this passage point to Jesus?",
+      "What practical step can you take this week based on what you've studied?",
+      "Discuss this passage with someone this week. What new insight did they share?",
+      "How has this study changed your understanding of God's Word?"
+    ]
+  },
+  {
+    "id": "new-believers",
+    "name": "New Believers Journey",
+    "description": "A gentle, welcoming series designed for people new to faith — covering the basics of Christianity with warmth and simplicity.",
+    "icon": "🌱",
+    "color": "#10b981",
+    "suggestedDuration": 14,
+    "suggestedPostsPerWeek": 3,
+    "suggestedPlatforms": ["Instagram", "Facebook", "WhatsApp"],
+    "themes": ["faith", "love", "prayer", "forgiveness", "hope", "community"],
+    "postPatterns": [
+      {
+        "format": "journey",
+        "templates": [
+          "🌱 {seriesTitle} — Step {n}\n\n{reflection}\n\n\"{scriptureText}\" — {scriptureRef}\n\nYou're not alone on this journey. We're walking with you! 💚 #{hashtag}",
+          "Welcome to Step {n} of your {seriesTitle} 🌱\n\n📖 {scriptureRef}: \"{scriptureText}\"\n\n{reflection}\n\nQuestions? Ask in the comments — no question is too small! 🤗",
+          "New to faith? You belong here. 💚\n\n{seriesTitle} — Part {n}\n\n{reflection}\n\n\"{scriptureText}\" — {scriptureRef}\n\nSaved = loved. Always. #{hashtag}"
+        ]
+      }
+    ],
+    "reflections": [
+      "Welcome! Starting this journey is the most important decision you'll ever make.",
+      "What does it mean to be 'saved'? Simply put — you are forgiven, loved, and never alone.",
+      "Prayer is just talking to God. No perfect words needed. Start a conversation today.",
+      "The Bible is God's love letter to you. Start with the book of John.",
+      "You don't have to clean yourself up before coming to God. He accepts you as you are.",
+      "Finding a church community means finding a family to grow with.",
+      "Baptism is your public declaration: I belong to Jesus now.",
+      "Doubts are normal. Bring them to God — He can handle your questions.",
+      "God's grace means you can't earn His love. It's a free gift.",
+      "Worship isn't just singing. It's living your life in gratitude for what God has done.",
+      "Start a daily Bible reading habit — even 5 minutes makes a difference.",
+      "You were created on purpose, for a purpose. Ask God to reveal it to you."
+    ]
+  },
+  {
+    "id": "gratitude-series",
+    "name": "Gratitude & Thanksgiving Series",
+    "description": "A focused series on cultivating thankfulness, perfect for the Thanksgiving season or any time your community needs a grateful-heart reset.",
+    "icon": "🙌",
+    "color": "#f97316",
+    "suggestedDuration": 14,
+    "suggestedPostsPerWeek": 5,
+    "suggestedPlatforms": ["Instagram", "Facebook", "X (Twitter)"],
+    "themes": ["gratitude", "joy", "love", "peace", "worship", "community"],
+    "postPatterns": [
+      {
+        "format": "gratitude",
+        "templates": [
+          "🙌 {seriesTitle} — Day {n}\n\n\"{scriptureText}\" — {scriptureRef}\n\n{reflection}\n\nWhat are YOU thankful for today? Share below! 👇 #{hashtag}",
+          "Day {n}: Choosing Gratitude 🧡\n\n{reflection}\n\n📖 {scriptureRef}: \"{scriptureText}\"\n\nGratitude changes everything. #{hashtag}",
+          "Thankful Thursday 🍂 (Day {n})\n\n{reflection}\n\n\"{scriptureText}\" — {scriptureRef}\n\nTag someone you're grateful for! #{hashtag}"
+        ]
+      }
+    ],
+    "reflections": [
+      "Name three blessings from today — no matter how small.",
+      "Write a thank-you note to someone who has impacted your life.",
+      "Thank God for something you usually take for granted.",
+      "Look around your home. What are you most grateful for?",
+      "Recall a prayer that God answered this year. Thank Him again.",
+      "Express gratitude for a challenge that helped you grow.",
+      "Who made you smile this week? Let them know you appreciate them.",
+      "Thank God for His presence — even in the hard seasons.",
+      "Share a meal with someone and express what they mean to you.",
+      "Start a gratitude journal. Write three things before bed tonight.",
+      "Thank God for His promises that never fail.",
+      "Look at your calendar this week. Which moment are you most thankful for?",
+      "Gratitude isn't just a feeling — it's a choice. Choose it today.",
+      "End this series by sharing your biggest takeaway about thankfulness."
+    ]
+  }
+]
