@@ -1212,3 +1212,135 @@
     justify-content: center;
   }
 }
+
+/* ── Tier Cards ── */
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .tierGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tierCard {
+  position: relative;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 24px 20px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tierCard:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.tierCardActive {
+  border-width: 2px;
+  background: #fafbff;
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.08);
+}
+
+.tierPopular {
+  position: absolute;
+  top: -1px;
+  right: 20px;
+  padding: 3px 12px;
+  border-radius: 0 0 8px 8px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tierName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.tierPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.tierPriceAmount {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #181b20;
+}
+
+.tierPricePeriod {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.tierTagline {
+  color: #6b7280;
+  font-size: 0.82rem;
+  margin: 0 0 14px;
+}
+
+.tierFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.tierFeatures li {
+  font-size: 0.82rem;
+  color: #374151;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tierLimits {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  padding: 8px 0;
+  border-top: 1px solid #f3f4f6;
+  margin-bottom: 14px;
+}
+
+.tierCurrentBadge {
+  text-align: center;
+  padding: 10px;
+  border: 2px solid;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.tierSelectBtn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.tierSelectBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.tierSelectBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

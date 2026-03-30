@@ -222,6 +222,14 @@ function PostPage() {
     msg: string;
   } | null>(null);
 
+  // AI features state
+  const [canUseAi, setCanUseAi] = useState(false);
+  const [aiRewriting, setAiRewriting] = useState(false);
+  const [aiHashtagging, setAiHashtagging] = useState(false);
+  const [showRewriteMenu, setShowRewriteMenu] = useState(false);
+
+  const AI_TONES = ["inspirational", "conversational", "educational", "pastoral", "youthful"] as const;
+
   const showToast = useCallback(
     (type: "success" | "error" | "info", msg: string) => {
       setToast({ type, msg });
@@ -310,6 +318,12 @@ function PostPage() {
   useEffect(() => {
     if (!orgId) return;
     let cancelled = false;
+
+    // Also check AI access
+    fetch(`/api/ai/can-use/${orgId}`)
+      .then((r) => (r.ok ? r.json() : { allowed: false }))
+      .then((d) => { if (!cancelled) setCanUseAi(d.allowed === true); })
+      .catch(() => { if (!cancelled) setCanUseAi(false); });
 
     (async () => {
       try {
@@ -773,6 +787,57 @@ function PostPage() {
     return map[name] || null;
   };
 
+  // AI Rewrite handler
+  const handleAiRewrite = async (tone: string) => {
+    if (!content.trim()) return;
+    setAiRewriting(true);
+    setShowRewriteMenu(false);
+    try {
+      const platform = selectedPlatforms.size === 1
+        ? Array.from(selectedPlatforms)[0]
+        : undefined;
+      const res = await fetch("/api/ai/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, tone, platform }),
+      });
+      if (!res.ok) throw new Error("AI rewrite failed");
+      const data = await res.json();
+      if (data.content) {
+        setContent(data.content);
+        showToast("success", `Rewritten in ${tone} tone`);
+      }
+    } catch {
+      showToast("error", "AI rewrite failed. Check that the AI service is running.");
+    } finally {
+      setAiRewriting(false);
+    }
+  };
+
+  // AI Hashtag handler
+  const handleAiHashtags = async () => {
+    if (!content.trim()) return;
+    setAiHashtagging(true);
+    try {
+      const res = await fetch("/api/ai/hashtags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, count: 5 }),
+      });
+      if (!res.ok) throw new Error("AI hashtag generation failed");
+      const data = await res.json();
+      if (data.hashtags?.length) {
+        const tags = data.hashtags.join(" ");
+        setContent((prev) => prev.trimEnd() + "\n\n" + tags);
+        showToast("success", `Added ${data.hashtags.length} hashtags`);
+      }
+    } catch {
+      showToast("error", "Hashtag generation failed. Check that the AI service is running.");
+    } finally {
+      setAiHashtagging(false);
+    }
+  };
+
   const getHandle = (key: PlatformKey) =>
     platforms.find((p) => p.key === key)?.handle || "";
 
@@ -979,6 +1044,64 @@ function PostPage() {
                 {isOverLimit && " — over limit for selected platforms"}
               </div>
             </div>
+
+            {/* AI Toolbar */}
+            {canUseAi && (
+              <div className={styles.aiToolbar}>
+                <span className={styles.aiToolbarLabel}>🤖 AI Tools</span>
+
+                {/* Rewrite button + tone menu */}
+                <div className={styles.aiToolbarGroup}>
+                  <button
+                    className={styles.aiToolbarBtn}
+                    disabled={!content.trim() || aiRewriting}
+                    onClick={() => setShowRewriteMenu((v) => !v)}
+                  >
+                    {aiRewriting ? (
+                      <><span className={styles.spinner} /> Rewriting…</>
+                    ) : (
+                      "✍️ AI Rewrite"
+                    )}
+                  </button>
+
+                  {showRewriteMenu && (
+                    <div className={styles.aiToneMenu}>
+                      {AI_TONES.map((tone) => (
+                        <button
+                          key={tone}
+                          className={styles.aiToneOption}
+                          onClick={() => handleAiRewrite(tone)}
+                        >
+                          {tone.charAt(0).toUpperCase() + tone.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Hashtags button */}
+                <button
+                  className={styles.aiToolbarBtn}
+                  disabled={!content.trim() || aiHashtagging}
+                  onClick={handleAiHashtags}
+                >
+                  {aiHashtagging ? (
+                    <><span className={styles.spinner} /> Generating…</>
+                  ) : (
+                    "#️⃣ AI Hashtags"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {!canUseAi && content.trim().length > 0 && (
+              <div className={styles.aiUpgradeBanner}>
+                🤖 <strong>AI Tools</strong> — Rewrite in different tones & auto-generate hashtags.
+                <button className={styles.aiUpgradeLink} onClick={() => router.push("/settings?tab=billing")}>
+                  Upgrade →
+                </button>
+              </div>
+            )}
 
             {/* Image Upload — shown when image platforms selected */}
             <div

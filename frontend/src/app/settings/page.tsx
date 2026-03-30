@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, type JSX } from "react";
+import { useState, useEffect, useCallback, Suspense, type JSX } from "react";
 import { useAuth, useUser, useClerk, useOrganization } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
 import { FaInstagram, FaFacebookF, FaXTwitter, FaYoutube, FaWhatsapp } from "react-icons/fa6";
 import styles from "./settings.module.css";
 
@@ -60,35 +61,73 @@ const PLATFORMS = [
   { name: "WhatsApp", icon: <FaWhatsapp />, color: "#25D366", bg: "#e8faf0" },
 ];
 
-const PLAN = {
-  name: "Pro Plan",
-  price: 29,
-  tagline: "For growing ministries",
-  features: [
-    "Unlimited posts across all platforms",
-    "Advanced analytics and insights",
-    "AI Growth Assistant",
-    "Priority support",
-  ],
-  nextBilling: "April 22, 2026",
-  card: "4242",
-  history: [
-    { date: "March 22, 2026", amount: 29 },
-    { date: "February 22, 2026", amount: 29 },
-    { date: "January 22, 2026", amount: 29 },
-  ],
-};
+const PLAN_TIERS = [
+  {
+    id: "starter" as const,
+    name: "Starter",
+    price: 0,
+    tagline: "For getting started",
+    color: "#6b7280",
+    features: [
+      "Up to 3 content series",
+      "30 posts per month",
+      "Template-based content planner",
+      "All platform connections",
+    ],
+    limits: "3 series · 30 posts/mo",
+  },
+  {
+    id: "creator" as const,
+    name: "Creator",
+    price: 9.99,
+    tagline: "For growing ministries",
+    color: "#7c3aed",
+    popular: true,
+    features: [
+      "Up to 20 content series",
+      "Unlimited posts per month",
+      "AI content generation (20/mo)",
+      "AI rewrite & hashtags",
+      "All template features",
+    ],
+    limits: "20 series · Unlimited posts · 20 AI/mo",
+  },
+  {
+    id: "ministry_pro" as const,
+    name: "Ministry Pro",
+    price: 29.99,
+    tagline: "For established organizations",
+    color: "#059669",
+    features: [
+      "Unlimited content series",
+      "Unlimited posts per month",
+      "Unlimited AI generation",
+      "Team collaboration access",
+      "Priority support",
+      "Advanced analytics",
+    ],
+    limits: "Unlimited everything",
+  },
+];
 
-export default function SettingsPage() {
+type SubscriptionTier = "starter" | "creator" | "ministry_pro";
+
+function SettingsContent() {
   const { isLoaded, isSignedIn, user: clerkUser } = useUser();
   const { getToken } = useAuth();
   const { signOut } = useClerk();
+  const searchParams = useSearchParams();
 
   const [tab, setTab] = useState<Tab>("Profile");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
+  // Billing state
+  const [currentTier, setCurrentTier] = useState<SubscriptionTier>("starter");
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [tierSwitching, setTierSwitching] = useState<string | null>(null);
 
   // Profile form state
   const [profile, setProfile] = useState({
@@ -182,6 +221,43 @@ export default function SettingsPage() {
   useEffect(() => {
     if (isLoaded && isSignedIn) fetchProfile();
   }, [isLoaded, isSignedIn, fetchProfile]);
+
+  // Handle ?tab=billing query param
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "billing") setTab("Billing");
+  }, [searchParams]);
+
+  // Load billing data when Billing tab active
+  useEffect(() => {
+    if (tab !== "Billing" || !organization) return;
+    setBillingLoading(true);
+    fetch(`/api/billing/${organization.id}`)
+      .then((r) => (r.ok ? r.json() : { tier: "starter" }))
+      .then((d) => setCurrentTier(d.tier || "starter"))
+      .catch(() => setCurrentTier("starter"))
+      .finally(() => setBillingLoading(false));
+  }, [tab, organization]);
+
+  const handleChangeTier = async (newTier: SubscriptionTier) => {
+    if (!organization || newTier === currentTier) return;
+    setTierSwitching(newTier);
+    try {
+      const res = await fetch(`/api/billing/${organization.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier: newTier }),
+      });
+      if (!res.ok) throw new Error("Failed to update plan");
+      setCurrentTier(newTier);
+      const plan = PLAN_TIERS.find((t) => t.id === newTier);
+      showToast("success", `Switched to ${plan?.name || newTier} plan!`);
+    } catch {
+      showToast("error", "Failed to change plan");
+    } finally {
+      setTierSwitching(null);
+    }
+  };
 
   const handleSaveProfile = async () => {
     try {
@@ -901,48 +977,76 @@ export default function SettingsPage() {
         {/* ── Billing Tab ───────────────────────────────── */}
         {tab === "Billing" && (
           <div className={styles.card}>
-            <h3 className={styles.cardTitle}>Current Plan</h3>
+            <h3 className={styles.cardTitle}>Subscription Plan</h3>
+            <p style={{ color: "#6b7280", fontSize: "0.85rem", marginBottom: 20 }}>
+              Choose the plan that&apos;s right for your ministry. Changes take effect immediately.
+            </p>
 
-            <div className={styles.planCard}>
-              <div className={styles.planInfo}>
-                <h3>{PLAN.name}</h3>
-                <p>{PLAN.tagline}</p>
-                <ul className={styles.planFeatures}>
-                  {PLAN.features.map((f) => (
-                    <li key={f}><span className={styles.permGreen}>✓</span> {f}</li>
-                  ))}
-                </ul>
+            {billingLoading ? (
+              <p style={{ color: "#9ca3af", textAlign: "center", padding: 20 }}>Loading billing info…</p>
+            ) : (
+              <div className={styles.tierGrid}>
+                {PLAN_TIERS.map((plan) => {
+                  const isCurrent = plan.id === currentTier;
+                  const isSwitching = tierSwitching === plan.id;
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`${styles.tierCard} ${isCurrent ? styles.tierCardActive : ""}`}
+                      style={{ borderColor: isCurrent ? plan.color : undefined }}
+                    >
+                      {plan.popular && (
+                        <div className={styles.tierPopular} style={{ background: plan.color }}>
+                          Most Popular
+                        </div>
+                      )}
+                      <h4 className={styles.tierName} style={{ color: plan.color }}>{plan.name}</h4>
+                      <div className={styles.tierPrice}>
+                        <span className={styles.tierPriceAmount}>
+                          {plan.price === 0 ? "Free" : `$${plan.price}`}
+                        </span>
+                        {plan.price > 0 && <span className={styles.tierPricePeriod}>/month</span>}
+                      </div>
+                      <p className={styles.tierTagline}>{plan.tagline}</p>
+                      <ul className={styles.tierFeatures}>
+                        {plan.features.map((f) => (
+                          <li key={f}><span className={styles.permGreen}>✓</span> {f}</li>
+                        ))}
+                      </ul>
+                      <div className={styles.tierLimits}>{plan.limits}</div>
+                      {isCurrent ? (
+                        <div className={styles.tierCurrentBadge} style={{ borderColor: plan.color, color: plan.color }}>
+                          Current Plan
+                        </div>
+                      ) : (
+                        <button
+                          className={styles.tierSelectBtn}
+                          style={{ background: plan.color }}
+                          disabled={!!tierSwitching}
+                          onClick={() => handleChangeTier(plan.id)}
+                        >
+                          {isSwitching ? "Switching…" : plan.price > (PLAN_TIERS.find((t) => t.id === currentTier)?.price || 0) ? `Upgrade to ${plan.name}` : `Switch to ${plan.name}`}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className={styles.planPriceBlock}>
-                <div className={styles.planPrice}>${PLAN.price}</div>
-                <div className={styles.planPeriod}>/month</div>
-                <button className={styles.btnChangePlan}>Change Plan</button>
-              </div>
-            </div>
+            )}
 
-            <div className={styles.billingMeta}>
+            <div className={styles.billingMeta} style={{ marginTop: 24 }}>
               <div className={styles.billingMetaRow}>
-                <span className={styles.billingMetaLabel}>Next billing date</span>
-                <span className={styles.billingMetaValue}>{PLAN.nextBilling}</span>
+                <span className={styles.billingMetaLabel}>Current plan</span>
+                <span className={styles.billingMetaValue} style={{ textTransform: "capitalize" }}>
+                  {currentTier.replace("_", " ")}
+                </span>
               </div>
               <div className={styles.billingMetaRow}>
-                <span className={styles.billingMetaLabel}>Payment method</span>
-                <span className={styles.billingMetaValue}>•••• •••• •••• {PLAN.card}</span>
+                <span className={styles.billingMetaLabel}>Payment</span>
+                <span className={styles.billingMetaValue}>
+                  {currentTier === "starter" ? "No payment required" : "Stripe integration coming soon"}
+                </span>
               </div>
-            </div>
-
-            <div className={styles.historyTitle}>Billing History</div>
-            <div className={styles.historyTable}>
-              {PLAN.history.map((h, i) => (
-                <div key={i} className={styles.historyRow}>
-                  <span className={styles.historyDate}>{h.date}</span>
-                  <span className={styles.historyAmount}>
-                    ${h.amount.toFixed(2)}
-                    <span className={styles.historyBadge}>Paid</span>
-                  </span>
-                  <button className={styles.btnDownload}>Download</button>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -955,5 +1059,13 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsContent />
+    </Suspense>
   );
 }
