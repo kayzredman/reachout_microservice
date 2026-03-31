@@ -1,1 +1,29 @@
 node_modules
+dist
+build
+.next
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+*.swp
+*.swo
+
+# test coverage
+coverage
+
+# WhatsApp session data (contains auth keys)
+.wa-sessions
