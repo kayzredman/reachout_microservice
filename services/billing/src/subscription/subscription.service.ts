@@ -1,13 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Subscription, SubscriptionTier } from './subscription.entity';
 
-export type SubscriptionTier = 'starter' | 'creator' | 'ministry_pro';
-
-export interface Subscription {
-  orgId: string;
-  tier: SubscriptionTier;
-  status: 'active' | 'canceled' | 'past_due';
-  currentPeriodEnd: string;
-}
+export type { SubscriptionTier } from './subscription.entity';
 
 /** Feature-to-tier mapping: minimum tier required for each feature */
 const FEATURE_GATES: Record<string, SubscriptionTier> = {
@@ -37,34 +33,32 @@ export const TIER_LIMITS: Record<
 
 @Injectable()
 export class SubscriptionService {
-  /**
-   * In-memory store — will be replaced with PostgreSQL + Stripe webhooks.
-   * Default: every org starts on the free "starter" tier.
-   */
-  private subscriptions = new Map<string, Subscription>();
+  constructor(
+    @InjectRepository(Subscription)
+    private subscriptionRepo: Repository<Subscription>,
+  ) {}
 
   /** Get (or create) a subscription for an org */
-  getSubscription(orgId: string): Subscription {
-    if (!this.subscriptions.has(orgId)) {
-      this.subscriptions.set(orgId, {
+  async getSubscription(orgId: string): Promise<Subscription> {
+    let sub = await this.subscriptionRepo.findOne({ where: { orgId } });
+    if (!sub) {
+      sub = this.subscriptionRepo.create({
         orgId,
         tier: 'starter',
         status: 'active',
-        currentPeriodEnd: new Date(
-          Date.now() + 365 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       });
+      sub = await this.subscriptionRepo.save(sub);
     }
-    return this.subscriptions.get(orgId)!;
+    return sub;
   }
 
   /** Check if an org can use a given feature */
-  canUse(orgId: string, feature: string): { allowed: boolean; tier: SubscriptionTier; requiredTier: SubscriptionTier | null } {
-    const sub = this.getSubscription(orgId);
+  async canUse(orgId: string, feature: string): Promise<{ allowed: boolean; tier: SubscriptionTier; requiredTier: SubscriptionTier | null }> {
+    const sub = await this.getSubscription(orgId);
     const requiredTier = FEATURE_GATES[feature] ?? null;
 
     if (!requiredTier) {
-      // Unknown feature → allow (free features not gated)
       return { allowed: true, tier: sub.tier, requiredTier: null };
     }
 
@@ -76,15 +70,15 @@ export class SubscriptionService {
   }
 
   /** Get tier limits for an org */
-  getLimits(orgId: string) {
-    const sub = this.getSubscription(orgId);
+  async getLimits(orgId: string) {
+    const sub = await this.getSubscription(orgId);
     return { tier: sub.tier, limits: TIER_LIMITS[sub.tier] };
   }
 
   /** Upgrade an org's tier (will be called by Stripe webhook later) */
-  setTier(orgId: string, tier: SubscriptionTier): Subscription {
-    const sub = this.getSubscription(orgId);
+  async setTier(orgId: string, tier: SubscriptionTier): Promise<Subscription> {
+    const sub = await this.getSubscription(orgId);
     sub.tier = tier;
-    return sub;
+    return this.subscriptionRepo.save(sub);
   }
 }

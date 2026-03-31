@@ -142,6 +142,7 @@ function SettingsContent() {
     scheduled: true, engagement: true, followers: true, tips: true,
     push: false, weeklyReport: true,
   });
+  const [notifLoading, setNotifLoading] = useState(false);
 
   // Platform connections (from backend)
   const [connections, setConnections] = useState<Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string; connectedAt?: string; updatedAt?: string }>>({});
@@ -243,6 +244,54 @@ function SettingsContent() {
       .catch(() => setCurrentTier("starter"))
       .finally(() => setBillingLoading(false));
   }, [tab, organization]);
+
+  // Load notification prefs when Notifications tab active
+  const loadNotifPrefs = useCallback(async () => {
+    if (!organization) return;
+    setNotifLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/notifications/${organization.id}/preferences`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifPrefs({
+          scheduled: data.scheduled ?? true,
+          engagement: data.engagement ?? true,
+          followers: data.followers ?? true,
+          tips: data.tips ?? true,
+          push: data.push ?? false,
+          weeklyReport: data.weeklyReport ?? true,
+        });
+      }
+    } catch {
+      // keep defaults
+    } finally {
+      setNotifLoading(false);
+    }
+  }, [organization, getToken]);
+
+  useEffect(() => {
+    if (tab === "Notifications" && organization) loadNotifPrefs();
+  }, [tab, organization, loadNotifPrefs]);
+
+  const saveNotifPref = async (key: string, value: boolean) => {
+    setNotifPrefs((p) => ({ ...p, [key]: value }));
+    if (!organization) return;
+    try {
+      const token = await getToken();
+      await fetch(`/api/notifications/${organization.id}/preferences`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+    } catch {
+      // revert on failure
+      setNotifPrefs((p) => ({ ...p, [key]: !value }));
+      showToast("error", "Failed to save notification preference");
+    }
+  };
 
   const handleChangeTier = async (newTier: SubscriptionTier) => {
     if (!organization || newTier === currentTier) return;
@@ -1082,60 +1131,66 @@ function SettingsContent() {
           <div className={styles.card}>
             <h3 className={styles.cardTitle}>Notification Preferences</h3>
 
-            <div className={styles.notifSection}>
-              <div className={styles.notifSectionTitle}>Email Notifications</div>
-              <div className={styles.notifSectionDesc}>
-                Receive email updates about your posts and engagement
-              </div>
-              {[
-                { key: "scheduled" as const, label: "When a scheduled post is published" },
-                { key: "engagement" as const, label: "When you reach engagement milestones" },
-                { key: "followers" as const, label: "When you gain new followers" },
-                { key: "tips" as const, label: "Growth tips and best practices" },
-              ].map(({ key, label }) => (
-                <div key={key} className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>{label}</span>
-                  <input
-                    type="checkbox"
-                    className={styles.toggle}
-                    checked={notifPrefs[key]}
-                    onChange={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key] }))}
-                  />
+            {notifLoading ? (
+              <p style={{ color: "#9ca3af", textAlign: "center", padding: 20 }}>Loading preferences…</p>
+            ) : (
+              <>
+                <div className={styles.notifSection}>
+                  <div className={styles.notifSectionTitle}>Email Notifications</div>
+                  <div className={styles.notifSectionDesc}>
+                    Receive email updates about your posts and engagement
+                  </div>
+                  {[
+                    { key: "scheduled" as const, label: "When a scheduled post is published" },
+                    { key: "engagement" as const, label: "When you reach engagement milestones" },
+                    { key: "followers" as const, label: "When you gain new followers" },
+                    { key: "tips" as const, label: "Growth tips and best practices" },
+                  ].map(({ key, label }) => (
+                    <div key={key} className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>{label}</span>
+                      <input
+                        type="checkbox"
+                        className={styles.toggle}
+                        checked={notifPrefs[key]}
+                        onChange={() => saveNotifPref(key, !notifPrefs[key])}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className={styles.notifSection}>
-              <div className={styles.notifSectionTitle}>Push Notifications</div>
-              <div className={styles.notifSectionDesc}>
-                Get notified about important updates and milestones
-              </div>
-              <div className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>Enable push notifications</span>
-                <input
-                  type="checkbox"
-                  className={styles.toggle}
-                  checked={notifPrefs.push}
-                  onChange={() => setNotifPrefs((p) => ({ ...p, push: !p.push }))}
-                />
-              </div>
-            </div>
+                <div className={styles.notifSection}>
+                  <div className={styles.notifSectionTitle}>Push Notifications</div>
+                  <div className={styles.notifSectionDesc}>
+                    Get notified about important updates and milestones
+                  </div>
+                  <div className={styles.toggleRow}>
+                    <span className={styles.toggleLabel}>Enable push notifications</span>
+                    <input
+                      type="checkbox"
+                      className={styles.toggle}
+                      checked={notifPrefs.push}
+                      onChange={() => saveNotifPref("push", !notifPrefs.push)}
+                    />
+                  </div>
+                </div>
 
-            <div className={styles.notifSection}>
-              <div className={styles.notifSectionTitle}>Weekly Report</div>
-              <div className={styles.notifSectionDesc}>
-                Receive a weekly summary of your analytics and growth
-              </div>
-              <div className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>Enable weekly report</span>
-                <input
-                  type="checkbox"
-                  className={styles.toggle}
-                  checked={notifPrefs.weeklyReport}
-                  onChange={() => setNotifPrefs((p) => ({ ...p, weeklyReport: !p.weeklyReport }))}
-                />
-              </div>
-            </div>
+                <div className={styles.notifSection}>
+                  <div className={styles.notifSectionTitle}>Weekly Report</div>
+                  <div className={styles.notifSectionDesc}>
+                    Receive a weekly summary of your analytics and growth
+                  </div>
+                  <div className={styles.toggleRow}>
+                    <span className={styles.toggleLabel}>Enable weekly report</span>
+                    <input
+                      type="checkbox"
+                      className={styles.toggle}
+                      checked={notifPrefs.weeklyReport}
+                      onChange={() => saveNotifPref("weeklyReport", !notifPrefs.weeklyReport)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 

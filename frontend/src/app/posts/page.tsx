@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 
 interface Post {
   id: string;
@@ -18,43 +18,48 @@ interface Post {
 }
 
 export default function PostsPage() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
   const [posts, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
-
-
   const fetchPosts = useCallback(async () => {
+    if (!orgId) return;
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3002/posts");
+      const token = await getToken();
+      const res = await fetch(`/api/posts/${orgId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
       const data = await res.json();
-      // Only show posts for the signed-in user
-      setPosts(Array.isArray(data) && user ? data.filter((p: Post) => p.userId === user.id) : []);
+      setPosts(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [orgId, getToken]);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      fetchPosts();
-    }
-  }, [isLoaded, isSignedIn, user, fetchPosts]);
+    if (orgId) fetchPosts();
+  }, [orgId, fetchPosts]);
 
 
 
   async function createPost(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!orgId) return;
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3002/posts", {
+      const token = await getToken();
+      const res = await fetch(`/api/posts/${orgId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          userId: user.id,
           content,
           status: "draft",
         }),
@@ -68,12 +73,8 @@ export default function PostsPage() {
     }
   }
 
-  if (!isLoaded) {
-    return <div style={{ padding: 32 }}>Loading...</div>;
-  }
-
-  if (!isSignedIn) {
-    return <div style={{ padding: 32 }}>You must be signed in to view your posts.</div>;
+  if (!organization) {
+    return <div style={{ padding: 32, color: "#94a3b8" }}>Select or create an organization to view posts.</div>;
   }
 
   return (

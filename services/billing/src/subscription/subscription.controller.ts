@@ -10,13 +10,13 @@ export class SubscriptionController {
 
   /** GET /billing/:orgId — get the subscription for an org */
   @Get(':orgId')
-  getSubscription(@Param('orgId') orgId: string) {
+  async getSubscription(@Param('orgId') orgId: string) {
     return this.subscriptionService.getSubscription(orgId);
   }
 
   /** GET /billing/:orgId/can-use/:feature — check feature access */
   @Get(':orgId/can-use/:feature')
-  canUse(
+  async canUse(
     @Param('orgId') orgId: string,
     @Param('feature') feature: string,
   ) {
@@ -25,13 +25,13 @@ export class SubscriptionController {
 
   /** GET /billing/:orgId/limits — get tier limits */
   @Get(':orgId/limits')
-  getLimits(@Param('orgId') orgId: string) {
+  async getLimits(@Param('orgId') orgId: string) {
     return this.subscriptionService.getLimits(orgId);
   }
 
   /** PUT /billing/:orgId/tier — update tier (admin / Stripe webhook) */
   @Put(':orgId/tier')
-  setTier(
+  async setTier(
     @Param('orgId') orgId: string,
     @Body() body: { tier: string },
   ) {
