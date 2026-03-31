@@ -11,6 +11,12 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   supabase-studio:
     image: supabase/studio:latest
@@ -26,6 +32,194 @@ services:
       SUPABASE_DB_PASSWORD: postgres
     ports:
       - "54323:3000"
+
+  # ── Backend Services ─────────────────────────────────
+
+  auth:
+    build: ./services/auth
+    container_name: faithreach-auth
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  user:
+    build: ./services/user
+    container_name: faithreach-user
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_user
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  post:
+    build: ./services/post
+    container_name: faithreach-post
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_post
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      PLATFORM_SERVICE_URL: http://platform-integration:3009
+      FRONTEND_URL: http://localhost:3000
+
+  notification:
+    build: ./services/notification
+    container_name: faithreach-notification
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_notification
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  analytics:
+    build: ./services/analytics
+    container_name: faithreach-analytics
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  ai-assistant:
+    build: ./services/ai-assistant
+    container_name: faithreach-ai-assistant
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  content-planner:
+    build: ./services/content-planner
+    container_name: faithreach-content-planner
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3007:3007"
+    environment:
+      PORT: 3007
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_planner
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  billing:
+    build: ./services/billing
+    container_name: faithreach-billing
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_billing
+      FRONTEND_URL: http://localhost:3000
+
+  platform-integration:
+    build: ./services/platform-integration
+    container_name: faithreach-platform-integration
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3009:3009"
+    environment:
+      PORT: 3009
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_platform
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      TWITTER_CLIENT_ID: ${TWITTER_CLIENT_ID}
+      TWITTER_CLIENT_SECRET: ${TWITTER_CLIENT_SECRET}
+      META_APP_ID: ${META_APP_ID}
+      META_APP_SECRET: ${META_APP_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      FRONTEND_URL: http://localhost:3000
+
+  scheduler:
+    build: ./services/scheduler
+    container_name: faithreach-scheduler
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      FRONTEND_URL: http://localhost:3000
+
+  # ── Frontend ─────────────────────────────────────────
+
+  frontend:
+    build: ./frontend
+    container_name: faithreach-frontend
+    restart: unless-stopped
+    depends_on:
+      - user
+      - post
+      - billing
+      - platform-integration
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      USER_SERVICE_URL: http://user:3002
+      POST_SERVICE_URL: http://post:3003
+      PLATFORM_SERVICE_URL: http://platform-integration:3009
+      AI_SERVICE_URL: http://ai-assistant:3006
+      PLANNER_SERVICE_URL: http://content-planner:3007
+      BILLING_URL: http://billing:3008
+      NOTIFICATION_SERVICE_URL: http://notification:3004
+      SCHEDULER_SERVICE_URL: http://scheduler:3010
 
 volumes:
   db-data:

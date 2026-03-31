@@ -427,6 +427,9 @@ export class PlatformService {
     if (platform === 'WhatsApp') {
       return this.publishToWhatsApp(conn, content, imageUrl);
     }
+    if (platform === 'YouTube') {
+      return this.publishToYouTube(conn, content, imageUrl);
+    }
     throw new BadRequestException(`Publishing to ${platform} is not supported yet`);
   }
 
@@ -744,5 +747,90 @@ export class PlatformService {
       this.logger.error(`WhatsApp send failed for org=${conn.organizationId}: ${msg}`);
       throw new BadRequestException(`WhatsApp send failed: ${msg}`);
     }
+  }
+
+  /** Refresh an expired Google/YouTube OAuth2 access token */
+  private async refreshGoogleToken(conn: PlatformConnection): Promise<void> {
+    if (!conn.refreshToken) {
+      throw new BadRequestException('YouTube session expired. Reconnect YouTube in Settings.');
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID || '';
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: conn.refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+    });
+    const data = await res.json() as any;
+
+    if (!data.access_token) {
+      this.logger.error(`Google token refresh failed: ${JSON.stringify(data)}`);
+      throw new BadRequestException('YouTube token refresh failed. Reconnect YouTube in Settings.');
+    }
+
+    conn.accessToken = data.access_token;
+    conn.tokenExpiresAt = new Date(Date.now() + (data.expires_in || 3600) * 1000);
+    await this.connRepo.save(conn);
+  }
+
+  /**
+   * Post to YouTube using the Data API v3.
+   * - Text-only: creates a channel bulletin (activity.insert)
+   * - With image: creates a channel bulletin with the image description
+   *
+   * Note: Full video uploads require multipart upload which is handled
+   * separately. This covers text/image posts typical for church announcements.
+   */
+  private async publishToYouTube(
+    conn: PlatformConnection,
+    content: string,
+    _imageUrl?: string,
+  ): Promise<{ platformPostId?: string }> {
+    // Refresh token if expired
+    if (conn.tokenExpiresAt && conn.tokenExpiresAt < new Date()) {
+      await this.refreshGoogleToken(conn);
+    }
+
+    // Use YouTube Activities API to post a channel bulletin
+    const res = await fetch(
+      'https://www.googleapis.com/youtube/v3/activities?part=snippet,contentDetails',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${conn.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          snippet: {
+            description: content,
+          },
+          contentDetails: {
+            bulletin: {
+              resourceId: {
+                kind: 'youtube#channel',
+                channelId: conn.platformAccountId,
+              },
+            },
+          },
+        }),
+      },
+    );
+
+    const data = await res.json() as any;
+
+    if (!res.ok) {
+      const errMsg = data.error?.message || data.error?.errors?.[0]?.message || 'Unknown error';
+      this.logger.error(`YouTube publish failed: ${errMsg}`);
+      throw new BadRequestException(`YouTube publish failed: ${errMsg}`);
+    }
+
+    return { platformPostId: data.id };
   }
 }
