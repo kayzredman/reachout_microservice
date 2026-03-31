@@ -50,12 +50,12 @@ function rand(min, max) {
 const POSTS = [
   {
     content: "Good morning, church family! ☀️ 'His mercies are new every morning; great is His faithfulness.' — Lamentations 3:23. Start your day knowing you are loved beyond measure.",
-    platforms: ["Instagram", "Facebook", "X (Twitter)", "WhatsApp"],
+    platforms: ["Instagram", "Facebook", "X (Twitter)", "WhatsApp", "YouTube"],
     daysAgo: 2,
   },
   {
     content: "🙏 This Sunday's sermon: 'Finding Peace in the Storm' — Join us at 10 AM as Pastor James walks us through how to anchor our faith when life feels uncertain. See you there!",
-    platforms: ["Instagram", "Facebook", "WhatsApp"],
+    platforms: ["Instagram", "Facebook", "WhatsApp", "YouTube"],
     daysAgo: 5,
   },
   {
@@ -75,17 +75,17 @@ const POSTS = [
   },
   {
     content: "📖 Midweek Bible Study tonight at 7 PM! We're diving into the book of James — practical faith that works. Bring your Bible and a friend!",
-    platforms: ["Instagram", "Facebook", "X (Twitter)", "WhatsApp"],
+    platforms: ["Instagram", "Facebook", "X (Twitter)", "WhatsApp", "YouTube"],
     daysAgo: 14,
   },
   {
     content: "TONIGHT! 🎶 Worship Night at FaithReach Church. Doors open at 6:30 PM. Come as you are and experience God's presence in a powerful way.",
-    platforms: ["Instagram", "Facebook", "WhatsApp"],
+    platforms: ["Instagram", "Facebook", "WhatsApp", "YouTube"],
     daysAgo: 16,
   },
   {
     content: "Community outreach update: We packed and delivered 200 food boxes to families in need this month! Thank you to every volunteer who made this possible. 🤝❤️ #ServeOthers",
-    platforms: ["Instagram", "Facebook", "X (Twitter)", "WhatsApp"],
+    platforms: ["Instagram", "Facebook", "X (Twitter)", "WhatsApp", "YouTube"],
     daysAgo: 18,
   },
   {
@@ -105,7 +105,7 @@ const POSTS = [
   },
   {
     content: "Just launched our new podcast! 🎙️ 'Faith Forward' — weekly conversations about living boldly for Christ in everyday life. Link in bio! #FaithForwardPodcast",
-    platforms: ["Instagram", "Facebook", "X (Twitter)"],
+    platforms: ["Instagram", "Facebook", "X (Twitter)", "YouTube"],
     daysAgo: 26,
   },
 ];
@@ -171,6 +171,7 @@ const ENGAGEMENT = {
   Facebook:  { impressions: [500, 4000], likes: [25, 200], comments: [10, 60], shares: [15, 80], reach: [400, 3500], views: [50, 500], saves: [3, 20] },
   "X (Twitter)": { impressions: [300, 3000], likes: [10, 150], comments: [3, 30], shares: [5, 90], reach: [250, 2500], views: [30, 400], saves: [2, 15] },
   WhatsApp: { impressions: [200, 1800], likes: [2, 15], comments: [0, 3], shares: [5, 40], reach: [180, 1600], views: [150, 1400], saves: [0, 2], deliveryStatuses: ["delivered", "delivered", "read", "read", "read", "sent"] },
+  YouTube: { impressions: [400, 6000], likes: [15, 250], comments: [3, 50], shares: [2, 35], reach: [350, 5000], views: [200, 4500], saves: [1, 20] },
 };
 
 /* ── Seed functions ──────────────────────────────────── */
@@ -290,6 +291,7 @@ async function seedPlatforms(client) {
     { platform: "Facebook", handle: "FaithReach Church Community", connected: true, platformAccountId: "fb_108234567890" },
     { platform: "X (Twitter)", handle: "@faithreachorg", connected: true, platformAccountId: "tw_1234567890" },
     { platform: "WhatsApp", handle: "+1 (555) 012-3456", connected: true, phoneNumber: "+15550123456", channelId: "120363234567890@newsletter" },
+    { platform: "YouTube", handle: "FaithReach Church", connected: true, platformAccountId: "UC_yt_faithreach123" },
   ];
 
   for (const p of platforms) {

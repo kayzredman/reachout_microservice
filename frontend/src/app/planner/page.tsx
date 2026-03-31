@@ -71,7 +71,7 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: "#6b7280",
 };
 
-const ALL_PLATFORMS = ["Instagram", "Facebook", "X (Twitter)", "WhatsApp"];
+const ALL_PLATFORMS = ["Instagram", "Facebook", "X (Twitter)", "WhatsApp", "YouTube"];
 
 export default function PlannerPage() {
   const { getToken } = useAuth();

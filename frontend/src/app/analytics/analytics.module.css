@@ -307,21 +307,25 @@
 .chartWrap {
   width: 100%;
   overflow-x: auto;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .engChart {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 6px;
-  height: 180px;
-  padding-top: 20px;
+  gap: 12px;
+  height: 260px;
+  padding-top: 28px;
 }
 
 .engBar {
   flex: 1;
-  min-width: 28px;
-  max-width: 56px;
+  min-width: 36px;
+  max-width: 72px;
   border-radius: 6px 6px 0 0;
   transition: height 0.4s ease;
   position: relative;

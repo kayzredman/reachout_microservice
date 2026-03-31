@@ -7,7 +7,7 @@ import { PostEntity } from './post.entity';
 /** Platforms that require an image */
 const IMAGE_REQUIRED_PLATFORMS = ['Instagram'];
 /** Platforms that optionally support images */
-const IMAGE_OPTIONAL_PLATFORMS = ['Facebook'];
+const IMAGE_OPTIONAL_PLATFORMS = ['Facebook', 'YouTube'];
 /** Text-only platforms */
 const TEXT_ONLY_PLATFORMS = ['X (Twitter)', 'WhatsApp'];
 

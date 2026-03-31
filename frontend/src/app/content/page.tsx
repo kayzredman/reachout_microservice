@@ -8,7 +8,7 @@ import {
   FaFacebookF,
   FaWhatsapp,
 } from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
+import { FaXTwitter, FaYoutube } from "react-icons/fa6";
 import {
   HiOutlineSearch,
   HiOutlineRefresh,
@@ -43,6 +43,7 @@ function platformIcon(name: string) {
     Facebook: <FaFacebookF style={{ color: "#1877F2" }} />,
     "X (Twitter)": <FaXTwitter style={{ color: "#000" }} />,
     WhatsApp: <FaWhatsapp style={{ color: "#25D366" }} />,
+    YouTube: <FaYoutube style={{ color: "#FF0000" }} />,
   };
   return map[name] || null;
 }

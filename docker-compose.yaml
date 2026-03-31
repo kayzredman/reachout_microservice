@@ -18,20 +18,14 @@ services:
       timeout: 3s
       retries: 5
 
-  supabase-studio:
-    image: supabase/studio:latest
-    container_name: supabase-studio
+  adminer:
+    image: adminer:latest
+    container_name: faithreach-adminer
     restart: always
     depends_on:
       - db
-    environment:
-      SUPABASE_DB_HOST: db
-      SUPABASE_DB_PORT: 5432
-      SUPABASE_DB_NAME: faithreach_user
-      SUPABASE_DB_USER: postgres
-      SUPABASE_DB_PASSWORD: postgres
     ports:
-      - "54323:3000"
+      - "8080:8080"
 
   # ── Backend Services ─────────────────────────────────
 

@@ -8,13 +8,14 @@ import {
   FaFacebookF,
   FaWhatsapp,
   FaXTwitter,
+  FaYoutube,
   FaImage,
   FaCircleCheck,
   FaCircleXmark,
 } from "react-icons/fa6";
 import styles from "./post.module.css";
 
-type PlatformKey = "Instagram" | "Facebook" | "X (Twitter)" | "WhatsApp";
+type PlatformKey = "Instagram" | "Facebook" | "X (Twitter)" | "WhatsApp" | "YouTube";
 
 interface PlatformInfo {
   key: PlatformKey;
@@ -47,6 +48,7 @@ const PLATFORM_DEFS: Omit<PlatformInfo, "handle" | "connected">[] = [
   { key: "WhatsApp", icon: <FaWhatsapp />, color: "#25D366", type: "text" },
   { key: "Instagram", icon: <FaInstagram />, color: "#E1306C", type: "image" },
   { key: "Facebook", icon: <FaFacebookF />, color: "#1877F2", type: "image" },
+  { key: "YouTube", icon: <FaYoutube />, color: "#FF0000", type: "text" },
 ];
 
 const CHAR_LIMITS: Record<PlatformKey, number> = {
@@ -54,6 +56,7 @@ const CHAR_LIMITS: Record<PlatformKey, number> = {
   WhatsApp: 4096,
   Instagram: 2200,
   Facebook: 63206,
+  YouTube: 5000,
 };
 
 /* ── Platform preview renderers ── */
@@ -160,6 +163,28 @@ function FacebookPreview({ content, handle, imageUrl }: { content: string; handl
       )}
       <div className={styles.previewFooter} style={{ borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
         <span>👍 Like</span><span>💬 Comment</span><span>↗️ Share</span>
+      </div>
+    </div>
+  );
+}
+
+function YouTubePreview({ content, handle }: { content: string; handle: string }) {
+  return (
+    <div className={styles.previewCard}>
+      <div className={styles.previewHeader} style={{ background: "#FF0000", color: "#fff", borderRadius: "12px 12px 0 0", margin: "-16px -16px 12px -16px", padding: "12px 16px" }}>
+        <div className={styles.previewAvatar} style={{ background: "#fff" }}>
+          <FaYoutube style={{ color: "#FF0000", fontSize: 14 }} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: "#fff" }}>{handle || "Your Channel"}</div>
+          <div style={{ fontSize: 11, color: "#ffcccb" }}>Community Post</div>
+        </div>
+      </div>
+      <div className={styles.previewBody}>
+        {content ? content.slice(0, 5000) : "Your YouTube community post will appear here..."}
+      </div>
+      <div className={styles.previewFooter}>
+        <span>👍 Like</span><span>👎 Dislike</span><span>💬 Comment</span>
       </div>
     </div>
   );
@@ -783,6 +808,7 @@ function PostPage() {
       Facebook: <FaFacebookF style={{ color: "#1877F2" }} />,
       "X (Twitter)": <FaXTwitter style={{ color: "#000" }} />,
       WhatsApp: <FaWhatsapp style={{ color: "#25D366" }} />,
+      YouTube: <FaYoutube style={{ color: "#FF0000" }} />,
     };
     return map[name] || null;
   };
@@ -1305,6 +1331,9 @@ function PostPage() {
               {previewTab === "Facebook" && (
                 <FacebookPreview content={content} handle={getHandle("Facebook")} imageUrl={imageUrl} />
               )}
+              {previewTab === "YouTube" && (
+                <YouTubePreview content={content} handle={getHandle("YouTube")} />
+              )}
             </div>
           </div>
         </div>
@@ -1380,6 +1409,15 @@ function PostPage() {
                 <div className={styles.tipCardBody}>
                   <strong>Facebook</strong>
                   <span>Image optional · Boosts engagement 2.3×.</span>
+                </div>
+              </div>
+              <div className={styles.tipCard}>
+                <div className={styles.tipCardIcon} style={{ background: "#fee2e2" }}>
+                  <FaYoutube style={{ color: "#FF0000" }} />
+                </div>
+                <div className={styles.tipCardBody}>
+                  <strong>YouTube</strong>
+                  <span>Community posts · 5000 chars max.</span>
                 </div>
               </div>
             </div>
