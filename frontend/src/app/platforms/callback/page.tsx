@@ -32,7 +32,7 @@ function CallbackHandler() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ platform, code }),
+          body: JSON.stringify({ platform, code, state: stateParam }),
         });
 
         if (!res.ok) {

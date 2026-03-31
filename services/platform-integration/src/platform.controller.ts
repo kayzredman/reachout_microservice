@@ -88,16 +88,16 @@ export class PlatformController {
   @Post(':orgId/callback')
   async oauthCallback(
     @Param('orgId') orgId: string,
-    @Body() body: { platform: string; code: string },
+    @Body() body: { platform: string; code: string; state?: string },
     @Req() req: any,
   ) {
     const userId = req.user?.sub;
     if (!userId) throw new BadRequestException('Missing user');
 
-    const { platform, code } = body;
+    const { platform, code, state } = body;
     if (!platform || !code) throw new BadRequestException('Platform and code are required');
 
-    const conn = await this.platformService.handleOAuthCallback(platform, orgId, code, userId);
+    const conn = await this.platformService.handleOAuthCallback(platform, orgId, code, userId, state);
     return {
       connected: true,
       handle: conn.handle,

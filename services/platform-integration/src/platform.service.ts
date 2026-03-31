@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes, createHash } from 'crypto';
 import { PlatformConnection } from './platform-connection.entity.js';
 import { WhatsAppSessionService } from './whatsapp-session.service.js';
 
@@ -31,11 +32,22 @@ const OAUTH_CONFIG: Record<string, { authUrl: string; scopes: string }> = {
 export class PlatformService {
   private readonly logger = new Logger(PlatformService.name);
 
+  /** PKCE code verifiers keyed by OAuth state parameter (auto-expire after 10 min) */
+  private pkceVerifiers = new Map<string, { verifier: string; createdAt: number }>();
+
   constructor(
     @InjectRepository(PlatformConnection)
     private connRepo: Repository<PlatformConnection>,
     private sessionService: WhatsAppSessionService,
-  ) {}
+  ) {
+    // Clean up stale PKCE verifiers every 5 minutes
+    setInterval(() => {
+      const cutoff = Date.now() - 10 * 60 * 1000;
+      for (const [key, val] of this.pkceVerifiers) {
+        if (val.createdAt < cutoff) this.pkceVerifiers.delete(key);
+      }
+    }, 5 * 60 * 1000).unref();
+  }
 
   /** Get all connections for an organization */
   async getConnections(organizationId: string): Promise<PlatformConnection[]> {
@@ -64,14 +76,22 @@ export class PlatformService {
     if (platform === 'X (Twitter)') {
       const clientId = process.env.TWITTER_CLIENT_ID;
       if (!clientId) throw new BadRequestException('Twitter OAuth is not configured. Set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET environment variables.');
+
+      // Generate cryptographically random PKCE code_verifier (43-128 chars, base64url)
+      const codeVerifier = randomBytes(32).toString('base64url');
+      const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+
+      // Store verifier keyed by state so we can retrieve it during token exchange
+      this.pkceVerifiers.set(state, { verifier: codeVerifier, createdAt: Date.now() });
+
       const params = new URLSearchParams({
         response_type: 'code',
         client_id: clientId,
         redirect_uri: redirectUri,
         scope: config.scopes,
         state,
-        code_challenge: 'challenge', // In production, generate proper PKCE challenge
-        code_challenge_method: 'plain',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
       });
       return `${config.authUrl}?${params.toString()}`;
     }
@@ -112,9 +132,10 @@ export class PlatformService {
     organizationId: string,
     code: string,
     connectedBy: string,
+    state?: string,
   ): Promise<PlatformConnection> {
     // Exchange the authorization code for tokens based on platform
-    const tokens = await this.exchangeCodeForTokens(platform, code);
+    const tokens = await this.exchangeCodeForTokens(platform, code, state);
 
     // Upsert the connection record
     let conn = await this.connRepo.findOne({ where: { organizationId, platform } });
@@ -189,6 +210,7 @@ export class PlatformService {
   private async exchangeCodeForTokens(
     platform: string,
     code: string,
+    state?: string,
   ): Promise<{
     accessToken: string;
     refreshToken?: string;
@@ -203,7 +225,18 @@ export class PlatformService {
       return this.exchangeMetaToken(platform, code, redirectUri);
     }
     if (platform === 'X (Twitter)') {
-      return this.exchangeTwitterToken(code, redirectUri);
+      // Retrieve the PKCE code_verifier we stored when generating the auth URL
+      let codeVerifier = 'challenge'; // fallback for legacy flows
+      if (state) {
+        const stored = this.pkceVerifiers.get(state);
+        if (stored) {
+          codeVerifier = stored.verifier;
+          this.pkceVerifiers.delete(state);
+        } else {
+          this.logger.warn('PKCE verifier not found for state — using fallback');
+        }
+      }
+      return this.exchangeTwitterToken(code, redirectUri, codeVerifier);
     }
     if (platform === 'YouTube') {
       return this.exchangeGoogleToken(code, redirectUri);
@@ -288,7 +321,7 @@ export class PlatformService {
     };
   }
 
-  private async exchangeTwitterToken(code: string, redirectUri: string) {
+  private async exchangeTwitterToken(code: string, redirectUri: string, codeVerifier: string) {
     const clientId = process.env.TWITTER_CLIENT_ID || '';
     const clientSecret = process.env.TWITTER_CLIENT_SECRET || '';
 
@@ -302,7 +335,7 @@ export class PlatformService {
         grant_type: 'authorization_code',
         code,
         redirect_uri: redirectUri,
-        code_verifier: 'challenge', // Must match the code_challenge sent earlier
+        code_verifier: codeVerifier,
       }),
     });
     const tokenData = await tokenRes.json() as any;

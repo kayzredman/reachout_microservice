@@ -144,12 +144,17 @@ function SettingsContent() {
   });
 
   // Platform connections (from backend)
-  const [connections, setConnections] = useState<Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string }>>({});
+  const [connections, setConnections] = useState<Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string; connectedAt?: string; updatedAt?: string }>>({});
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
   const [whatsappQr, setWhatsappQr] = useState("");
   const [whatsappStatus, setWhatsappStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [showWhatsappQr, setShowWhatsappQr] = useState(false);
+  const [disconnectConfirm, setDisconnectConfirm] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Team / Org state
   const { organization, membership } = useOrganization();
@@ -313,9 +318,16 @@ function SettingsContent() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      const map: Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string }> = {};
+      const map: Record<string, { connected: boolean; handle: string; channelId?: string; tokenExpiresAt?: string; connectedAt?: string; updatedAt?: string }> = {};
       for (const conn of data) {
-        map[conn.platform] = { connected: conn.connected, handle: conn.handle || "", channelId: conn.channelId, tokenExpiresAt: conn.tokenExpiresAt };
+        map[conn.platform] = {
+          connected: conn.connected,
+          handle: conn.handle || "",
+          channelId: conn.channelId,
+          tokenExpiresAt: conn.tokenExpiresAt,
+          connectedAt: conn.createdAt,
+          updatedAt: conn.updatedAt,
+        };
       }
       setConnections(map);
     } catch {
@@ -396,20 +408,29 @@ function SettingsContent() {
         },
         body: JSON.stringify({ platform: name }),
       });
-      if (!res.ok) throw new Error("Failed to start OAuth flow");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || err.error || `Failed to start OAuth for ${name}`);
+      }
       const data = await res.json();
       if (data.authUrl) {
         window.location.href = data.authUrl;
         return;
       }
-    } catch {
-      showToast("error", `Failed to connect ${name}`);
+    } catch (e) {
+      showToast("error", e instanceof Error ? e.message : `Failed to connect ${name}`);
     }
     setPlatformLoading(null);
   };
 
   const handleDisconnectPlatform = async (name: string) => {
     if (!organization) return;
+    // Require confirmation first
+    if (disconnectConfirm !== name) {
+      setDisconnectConfirm(name);
+      return;
+    }
+    setDisconnectConfirm(null);
     setPlatformLoading(name);
     try {
       const token = await getToken();
@@ -417,12 +438,16 @@ function SettingsContent() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to disconnect");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to disconnect");
+      }
       showToast("success", `${name} disconnected`);
       await loadPlatformData();
-    } catch {
-      showToast("error", `Failed to disconnect ${name}`);
+    } catch (e) {
+      showToast("error", e instanceof Error ? e.message : `Failed to disconnect ${name}`);
     }
+    setPlatformLoading(name === platformLoading ? null : platformLoading);
     setPlatformLoading(null);
   };
 
@@ -502,7 +527,34 @@ function SettingsContent() {
                   </div>
                 )}
                 <div className={styles.avatarActions}>
-                  <button className={styles.changePhotoBtn}>Change Photo</button>
+                  <label className={styles.changePhotoBtn} style={{ cursor: avatarUploading ? "wait" : "pointer" }}>
+                    {avatarUploading ? "Uploading..." : "Change Photo"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif"
+                      style={{ display: "none" }}
+                      disabled={avatarUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !clerkUser) return;
+                        if (file.size > 2 * 1024 * 1024) {
+                          showToast("error", "Image must be under 2MB");
+                          return;
+                        }
+                        try {
+                          setAvatarUploading(true);
+                          await clerkUser.setProfileImage({ file });
+                          setImageUrl(clerkUser.imageUrl);
+                          showToast("success", "Profile photo updated!");
+                        } catch {
+                          showToast("error", "Failed to upload photo");
+                        } finally {
+                          setAvatarUploading(false);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
                   <span className={styles.avatarHint}>JPG, PNG or GIF. Max size 2MB</span>
                 </div>
               </div>
@@ -572,21 +624,44 @@ function SettingsContent() {
             {/* Security Card */}
             <div className={styles.card}>
               <h3 className={styles.cardTitle}>Security</h3>
-              <div className={styles.passwordGrid}>
+              <p style={{ color: "#64748b", fontSize: "0.9rem", marginBottom: 16 }}>
+                Your password and authentication are managed securely through Clerk.
+              </p>
+              <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Current Password</label>
-                  <input className={styles.formInput} type="password" placeholder="••••••••" />
+                  <label className={styles.formLabel}>Email</label>
+                  <div className={styles.formValue}>{clerkUser?.primaryEmailAddress?.emailAddress || "—"}</div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>New Password</label>
-                  <input className={styles.formInput} type="password" placeholder="••••••••" />
+                  <label className={styles.formLabel}>Authentication</label>
+                  <div className={styles.formValue}>
+                    {clerkUser?.passwordEnabled ? "Password + Social" : "Social login only"}
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Confirm New Password</label>
-                  <input className={styles.formInput} type="password" placeholder="••••••••" />
+                  <label className={styles.formLabel}>Two-Factor Auth</label>
+                  <div className={styles.formValue}>
+                    {clerkUser?.twoFactorEnabled
+                      ? <span style={{ color: "#16a34a" }}>✓ Enabled</span>
+                      : <span style={{ color: "#94a3b8" }}>Not enabled</span>}
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Last Sign In</label>
+                  <div className={styles.formValue}>
+                    {clerkUser?.lastSignInAt
+                      ? new Date(clerkUser.lastSignInAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                      : "—"}
+                  </div>
                 </div>
               </div>
-              <button className={styles.btnOutline}>Update Password</button>
+              <button
+                className={styles.btnOutline}
+                onClick={() => clerkUser?.createExternalAccount && window.open("https://accounts.clerk.dev/user", "_blank")}
+                style={{ marginTop: 8 }}
+              >
+                Manage Security Settings
+              </button>
             </div>
 
             {/* Danger Zone */}
@@ -610,9 +685,44 @@ function SettingsContent() {
                 <div className={styles.dangerItem}>
                   <div className={styles.dangerItemInfo}>
                     <h4>Delete Account</h4>
-                    <p>Permanently delete your account and all data</p>
+                    <p>Permanently delete your account and all data. This cannot be undone.</p>
                   </div>
-                  <button className={styles.btnDelete}>Delete Account</button>
+                  {!showDeleteConfirm ? (
+                    <button className={styles.btnDelete} onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                      <p style={{ fontSize: "0.8rem", color: "#ef4444", margin: 0 }}>
+                        Type <strong>DELETE</strong> to confirm
+                      </p>
+                      <input
+                        className={styles.formInput}
+                        placeholder="Type DELETE"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        style={{ width: 160, fontSize: "0.85rem" }}
+                      />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button className={styles.btnDisconnect} onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}>Cancel</button>
+                        <button
+                          className={styles.btnDelete}
+                          disabled={deleteConfirmText !== "DELETE" || deleting}
+                          onClick={async () => {
+                            if (deleteConfirmText !== "DELETE" || !clerkUser) return;
+                            setDeleting(true);
+                            try {
+                              await clerkUser.delete();
+                              window.location.href = "/";
+                            } catch {
+                              showToast("error", "Failed to delete account");
+                              setDeleting(false);
+                            }
+                          }}
+                        >
+                          {deleting ? "Deleting..." : "Confirm Delete"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -828,14 +938,49 @@ function SettingsContent() {
                           ? "Scan the QR code with your WhatsApp to connect"
                           : "Not connected"}
                     </div>
-                    {/* Token status & channel info */}
-                    {conn?.connected && conn.tokenExpiresAt && p.name !== "WhatsApp" && (
-                      <div style={{ fontSize: "0.75rem", color: new Date(conn.tokenExpiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? "#ef4444" : "#94a3b8", marginTop: 2 }}>
-                        Token expires {new Date(conn.tokenExpiresAt).toLocaleDateString()}
-                        {new Date(conn.tokenExpiresAt) < new Date() && " ⚠️ Expired — reconnect needed"}
-                        {new Date(conn.tokenExpiresAt) >= new Date() && new Date(conn.tokenExpiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) && " ⚠️ Expiring soon"}
+                    {/* Connected since */}
+                    {conn?.connected && conn.connectedAt && (
+                      <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: 2 }}>
+                        Connected since {new Date(conn.connectedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                       </div>
                     )}
+                    {/* WhatsApp phone number */}
+                    {p.name === "WhatsApp" && conn?.connected && whatsappPhone && (
+                      <div style={{ fontSize: "0.75rem", color: "#25D366", marginTop: 2 }}>
+                        📱 {whatsappPhone}
+                      </div>
+                    )}
+                    {/* Token status & reconnect */}
+                    {conn?.connected && conn.tokenExpiresAt && p.name !== "WhatsApp" && (() => {
+                      const expiryDate = new Date(conn.tokenExpiresAt!);
+                      const now = new Date();
+                      const expired = expiryDate < now;
+                      const diffMs = Math.abs(expiryDate.getTime() - now.getTime());
+                      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const expiringSoon = !expired && expiryDate < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                      const relativeLabel = expired
+                        ? diffDays > 0 ? `Expired ${diffDays}d ago` : `Expired ${diffHrs}h ago`
+                        : diffDays > 0 ? `Expires in ${diffDays}d` : `Expires in ${diffHrs}h`;
+                      return (
+                        <div style={{ fontSize: "0.75rem", color: expired ? "#ef4444" : expiringSoon ? "#f59e0b" : "#94a3b8", marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span>
+                            {relativeLabel}
+                            {expired && " ⚠️"}
+                            {expiringSoon && " ⚠️"}
+                          </span>
+                          {(expired || expiringSoon) && isAdmin && (
+                            <button
+                              style={{ fontSize: "0.75rem", color: "#7c3aed", background: "none", border: "1px solid #7c3aed", borderRadius: 6, padding: "2px 10px", cursor: "pointer" }}
+                              onClick={() => handleConnectPlatform(p.name)}
+                              disabled={platformLoading === p.name}
+                            >
+                              {platformLoading === p.name ? "..." : "Reconnect"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {/* WhatsApp QR code pairing */}
                     {p.name === "WhatsApp" && showWhatsappQr && !conn?.connected && (
                       <div style={{ marginTop: 12, textAlign: "center", maxWidth: 300 }}>
@@ -873,13 +1018,33 @@ function SettingsContent() {
                           ✓ Connected
                         </span>
                         {isAdmin && (
-                          <button
-                            className={styles.btnDisconnect}
-                            disabled={isLoading}
-                            onClick={() => handleDisconnectPlatform(p.name)}
-                          >
-                            {isLoading ? "..." : "Disconnect"}
-                          </button>
+                          disconnectConfirm === p.name ? (
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                              <span style={{ fontSize: "0.75rem", color: "#ef4444" }}>Disconnect?</span>
+                              <button
+                                className={styles.btnDisconnect}
+                                style={{ background: "#ef4444", color: "#fff", borderColor: "#ef4444" }}
+                                disabled={isLoading}
+                                onClick={() => handleDisconnectPlatform(p.name)}
+                              >
+                                {isLoading ? "..." : "Yes"}
+                              </button>
+                              <button
+                                className={styles.btnDisconnect}
+                                onClick={() => setDisconnectConfirm(null)}
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className={styles.btnDisconnect}
+                              disabled={isLoading}
+                              onClick={() => handleDisconnectPlatform(p.name)}
+                            >
+                              {isLoading ? "..." : "Disconnect"}
+                            </button>
+                          )
                         )}
                       </>
                     ) : (
