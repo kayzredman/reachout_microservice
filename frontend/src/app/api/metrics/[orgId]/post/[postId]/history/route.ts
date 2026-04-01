@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.POST_SERVICE_URL || 'http://localhost:3003';
+const BACKEND_URL = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3005';
 
 /**
  * GET /api/metrics/[orgId]/post/[postId]/history — Get full metrics history for a post

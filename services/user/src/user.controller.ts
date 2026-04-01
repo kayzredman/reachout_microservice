@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Req, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Req, NotFoundException, UseGuards } from '@nestjs/common';
 import { ClerkAuthGuard } from './clerk-auth.guard';
 import { UserService } from './user.service';
 import { User } from './user.entity';
@@ -31,5 +31,17 @@ export class UserController {
     const user = await this.userService.updateByClerk(clerkUser.sub, updates);
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  /**
+   * POST /user/webhook/sync
+   * Internal endpoint called by the auth service when Clerk webhook events arrive.
+   * Not guarded — only called service-to-service.
+   */
+  @Post('webhook/sync')
+  async webhookSync(
+    @Body() body: { clerkId: string; email?: string; name?: string; imageUrl?: string; action: 'create' | 'update' | 'delete' },
+  ) {
+    return this.userService.webhookSync(body);
   }
 }
