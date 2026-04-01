@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const clerk_auth_guard_1 = require("./clerk-auth.guard");
 const user_service_1 = require("./user.service");
 let UserController = class UserController {
+    userService;
     constructor(userService) {
         this.userService = userService;
     }
@@ -24,7 +25,12 @@ let UserController = class UserController {
         const clerkUser = req.user;
         if (!clerkUser)
             throw new common_1.NotFoundException('No Clerk user');
-        const clerkPayload = Object.assign(Object.assign({}, clerkUser), { email: req.headers['x-clerk-user-email'] || clerkUser.email || '', name: req.headers['x-clerk-user-name'] || clerkUser.name || '', image_url: req.headers['x-clerk-user-image'] || clerkUser.image_url || '' });
+        const clerkPayload = {
+            ...clerkUser,
+            email: req.headers['x-clerk-user-email'] || clerkUser.email || '',
+            name: req.headers['x-clerk-user-name'] || clerkUser.name || '',
+            image_url: req.headers['x-clerk-user-image'] || clerkUser.image_url || '',
+        };
         const user = await this.userService.getOrCreateByClerk(clerkUser.sub, clerkPayload);
         return user;
     }
@@ -36,6 +42,9 @@ let UserController = class UserController {
         if (!user)
             throw new common_1.NotFoundException('User not found');
         return user;
+    }
+    async webhookSync(body) {
+        return this.userService.webhookSync(body);
     }
 };
 exports.UserController = UserController;
@@ -56,6 +65,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "updateMe", null);
+__decorate([
+    (0, common_1.Post)('webhook/sync'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "webhookSync", null);
 exports.UserController = UserController = __decorate([
     (0, common_1.Controller)('user'),
     __metadata("design:paramtypes", [user_service_1.UserService])

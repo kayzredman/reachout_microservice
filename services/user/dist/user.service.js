@@ -11,13 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var UserService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("./user.entity");
-let UserService = class UserService {
+let UserService = UserService_1 = class UserService {
+    userRepository;
+    logger = new common_1.Logger(UserService_1.name);
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
@@ -40,12 +43,48 @@ let UserService = class UserService {
         if (!user)
             return null;
         const { name, bio, location, organization, role } = updates;
-        await this.userRepository.update(clerkId, Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name !== undefined && { name })), (bio !== undefined && { bio })), (location !== undefined && { location })), (organization !== undefined && { organization })), (role !== undefined && { role })));
+        await this.userRepository.update(clerkId, {
+            ...(name !== undefined && { name }),
+            ...(bio !== undefined && { bio }),
+            ...(location !== undefined && { location }),
+            ...(organization !== undefined && { organization }),
+            ...(role !== undefined && { role }),
+        });
         return this.userRepository.findOne({ where: { id: clerkId } });
+    }
+    async webhookSync(payload) {
+        const { clerkId, email, name, imageUrl, action } = payload;
+        if (action === 'delete') {
+            await this.userRepository.delete(clerkId);
+            this.logger.log(`User deleted via webhook: ${clerkId}`);
+            return { ok: true };
+        }
+        let user = await this.userRepository.findOne({ where: { id: clerkId } });
+        if (action === 'create' && !user) {
+            user = this.userRepository.create({
+                id: clerkId,
+                email: email || `${clerkId}@placeholder.local`,
+                name: name || 'User',
+                imageUrl: imageUrl || undefined,
+            });
+            await this.userRepository.save(user);
+            this.logger.log(`User created via webhook: ${clerkId}`);
+        }
+        else if (user) {
+            if (email)
+                user.email = email;
+            if (name)
+                user.name = name;
+            if (imageUrl !== undefined)
+                user.imageUrl = imageUrl || undefined;
+            await this.userRepository.save(user);
+            this.logger.log(`User updated via webhook: ${clerkId}`);
+        }
+        return { ok: true };
     }
 };
 exports.UserService = UserService;
-exports.UserService = UserService = __decorate([
+exports.UserService = UserService = UserService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository])

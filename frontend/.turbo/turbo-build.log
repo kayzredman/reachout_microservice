@@ -5,31 +5,71 @@
 
 [1m[38;2;173;127;168m▲ Next.js 16.2.1[39m[22m (Turbopack)
 - Environments: .env.local, .env
+- Experiments (use with caution):
+  · serverActions
 
 [37m[1m [22m[39m Creating an optimized production build ...
-[32m[1m✓[22m[39m Compiled successfully in 5.4s
-[?25l[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[?25h[?25l[37m[1m [22m[39m Finished TypeScript in 4.2s  [36m.[39m[2K[1G[?25h[37m[1m [22m[39m Finished TypeScript in 4.2s    [32m[1m✓[22m[39m Finished TypeScript in 4.2s 
-[?25l[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m...[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[?25h[37m[1m [22m[39m Collecting page data using 7 workers in 794ms    [32m[1m✓[22m[39m Collecting page data using 7 workers in 794ms 
-[?25l[37m[1m [22m[39m Generating static pages using 7 workers (0/16)  [36m[    ][39m[2K[1G[37m[1m [22m[39m Generating static pages using 7 workers (8/16)  [36m[=   ][39m[2K[1G[?25h[32m[1m✓[22m[39m Generating static pages using 7 workers (16/16) in 259ms
-[?25l[37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G[?25h[37m[1m [22m[39m Finalizing page optimization in 9ms    [32m[1m✓[22m[39m Finalizing page optimization in 9ms 
+[32m[1m✓[22m[39m Compiled successfully in 24.6s
+[?25l[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[?25h[?25l[37m[1m [22m[39m Finished TypeScript in 4.8s  [36m.[39m[2K[1G[?25h[37m[1m [22m[39m Finished TypeScript in 4.8s    [32m[1m✓[22m[39m Finished TypeScript in 4.8s 
+[?25l[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m...[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[?25h[37m[1m [22m[39m Collecting page data using 7 workers in 893ms    [32m[1m✓[22m[39m Collecting page data using 7 workers in 893ms 
+[?25l[37m[1m [22m[39m Generating static pages using 7 workers (0/24)  [36m[    ][39m[2K[1G[37m[1m [22m[39m Generating static pages using 7 workers (5/24)  [36m[=   ][39m[2K[1G[37m[1m [22m[39m Generating static pages using 7 workers (16/24)  [36m[==  ][39m[2K[1G[?25h[32m[1m✓[22m[39m Generating static pages using 7 workers (24/24) in 566ms
+[?25l[37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G[?25h[37m[1m [22m[39m Finalizing page optimization in 76ms    [32m[1m✓[22m[39m Finalizing page optimization in 76ms 
 
 [4mRoute (app)[24m
 ┌ ○ /
 ├ ○ /_not-found
 ├ ○ /analytics
+├ ƒ /api/ai/can-use/[orgId]
+├ ƒ /api/ai/hashtags
+├ ƒ /api/ai/rewrite
+├ ƒ /api/billing/[orgId]
+├ ƒ /api/billing/[orgId]/limits
+├ ƒ /api/metrics/[orgId]
+├ ƒ /api/metrics/[orgId]/post/[postId]
+├ ƒ /api/metrics/[orgId]/post/[postId]/history
+├ ƒ /api/notifications/[orgId]/preferences
+├ ƒ /api/payment/charge/momo
+├ ƒ /api/payment/history/[orgId]
+├ ƒ /api/payment/initialize
+├ ƒ /api/payment/pricing
+├ ƒ /api/payment/validate-momo
+├ ƒ /api/payment/verify/[txRef]
+├ ƒ /api/planner/[orgId]/can-use-ai
+├ ƒ /api/planner/[orgId]/commit
+├ ƒ /api/planner/[orgId]/generate
+├ ƒ /api/planner/[orgId]/generate-ai
+├ ƒ /api/planner/templates
+├ ƒ /api/platforms/[orgId]
+├ ƒ /api/platforms/[orgId]/[platform]
+├ ƒ /api/platforms/[orgId]/broadcast
+├ ƒ /api/platforms/[orgId]/broadcast/[broadcastId]
+├ ƒ /api/platforms/[orgId]/broadcast/validate
+├ ƒ /api/platforms/[orgId]/callback
+├ ƒ /api/platforms/[orgId]/connect
+├ ƒ /api/platforms/[orgId]/whatsapp/qr
+├ ƒ /api/platforms/[orgId]/whatsapp/status
+├ ƒ /api/posts/[orgId]
+├ ƒ /api/posts/[orgId]/[postId]
+├ ƒ /api/posts/[orgId]/[postId]/publish
+├ ƒ /api/posts/[orgId]/[postId]/schedule
+├ ƒ /api/posts/[orgId]/scheduled
+├ ƒ /api/series/[orgId]
+├ ƒ /api/series/[orgId]/[seriesId]
+├ ƒ /api/series/[orgId]/[seriesId]/posts/[postId]
 ├ ƒ /api/user/me
+├ ○ /content
 ├ ○ /dashboard
+├ ○ /payment/callback
+├ ○ /payment/checkout
 ├ ○ /planner
+├ ○ /platforms/callback
 ├ ○ /post
 ├ ○ /posts
 ├ ○ /profile
 ├ ○ /scheduler
 ├ ○ /settings
-├ ƒ /sign-in/[[...rest]]
-├ ○ /sign-in/clerk
-├ ƒ /sign-up/[[...rest]]
-├ ○ /sign-up/clerk
-└ ○ /user
+├ ƒ /sign-in/[[...sign-in]]
+└ ƒ /sign-up/[[...sign-up]]
 
 
 ƒ Proxy (Middleware)

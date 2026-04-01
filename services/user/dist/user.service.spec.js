@@ -60,7 +60,7 @@ describe('UserService', () => {
     describe('updateByClerk', () => {
         it('updates and returns the user', async () => {
             const existing = { id: 'clerk_1', name: 'Old', email: 'a@b.com' };
-            const updated = Object.assign(Object.assign({}, existing), { name: 'New' });
+            const updated = { ...existing, name: 'New' };
             repo.findOne.mockResolvedValueOnce(existing).mockResolvedValueOnce(updated);
             repo.update.mockResolvedValue({});
             const result = await service.updateByClerk('clerk_1', { name: 'New' });
