@@ -296,19 +296,41 @@ function SettingsContent() {
   const handleChangeTier = async (newTier: SubscriptionTier) => {
     if (!organization || newTier === currentTier) return;
     setTierSwitching(newTier);
+
+    const plan = PLAN_TIERS.find((t) => t.id === newTier);
+
+    // Downgrade to free tier — no payment needed
+    if (newTier === "starter") {
+      try {
+        const res = await fetch(`/api/billing/${organization.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tier: newTier }),
+        });
+        if (!res.ok) throw new Error("Failed to update plan");
+        setCurrentTier(newTier);
+        showToast("success", `Switched to ${plan?.name || newTier} plan!`);
+      } catch {
+        showToast("error", "Failed to change plan");
+      } finally {
+        setTierSwitching(null);
+      }
+      return;
+    }
+
+    // Paid tier — redirect to payment checkout page
     try {
-      const res = await fetch(`/api/billing/${organization.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier: newTier }),
+      const email = clerkUser?.primaryEmailAddress?.emailAddress || "";
+      const name = clerkUser?.fullName || organization.name || "";
+      const params = new URLSearchParams({
+        orgId: organization.id,
+        tier: newTier,
+        email,
+        name,
       });
-      if (!res.ok) throw new Error("Failed to update plan");
-      setCurrentTier(newTier);
-      const plan = PLAN_TIERS.find((t) => t.id === newTier);
-      showToast("success", `Switched to ${plan?.name || newTier} plan!`);
-    } catch {
-      showToast("error", "Failed to change plan");
-    } finally {
+      window.location.href = `/payment/checkout?${params.toString()}`;
+    } catch (err) {
+      showToast("error", err instanceof Error ? err.message : "Failed to start payment");
       setTierSwitching(null);
     }
   };
@@ -1264,7 +1286,7 @@ function SettingsContent() {
               <div className={styles.billingMetaRow}>
                 <span className={styles.billingMetaLabel}>Payment</span>
                 <span className={styles.billingMetaValue}>
-                  {currentTier === "starter" ? "No payment required" : "Stripe integration coming soon"}
+                  {currentTier === "starter" ? "No payment required" : "Powered by Flutterwave"}
                 </span>
               </div>
             </div>

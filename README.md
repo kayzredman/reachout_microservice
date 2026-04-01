@@ -8,22 +8,22 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 
 ## Tech Stack
 
-| Layer           | Technology                                               |
-| --------------- | -------------------------------------------------------- |
-| **Frontend**    | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| **Backend**     | NestJS 11, TypeScript (10 microservices)                 |
-| **Auth**        | Clerk (Organizations, RBAC)                              |
-| **Database**    | PostgreSQL 15, TypeORM                                   |
-| **WhatsApp**    | Baileys (QR-based multi-device protocol)                 |
-| **AI**          | OpenAI GPT-4o-mini (captions, hashtags, content plans)   |
-| **Billing**     | Tiered subscriptions (Starter / Growth / Pro)            |
-| **YouTube**     | YouTube Data API v3                                      |
-| **Social APIs** | Meta Graph API v21.0, X API v2 (OAuth 2.0 PKCE)          |
-| **Monorepo**    | TurboRepo, pnpm workspaces                               |
-| **Styling**     | CSS Modules                                              |
-| **Icons**       | react-icons (Font Awesome 6)                             |
-| **Containers**  | Docker, Docker Compose                                   |
-| **Runtime**     | Node.js v24                                              |
+| Layer            | Technology                                               |
+| ---------------- | -------------------------------------------------------- |
+| **Frontend**     | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
+| **Backend**      | NestJS 11, TypeScript (10 microservices)                 |
+| **Auth**         | Clerk (Organizations, RBAC)                              |
+| **Database**     | PostgreSQL 15, TypeORM                                   |
+| **WhatsApp**     | Baileys (QR-based multi-device protocol)                 |
+| **AI**           | OpenAI GPT-4o-mini (captions, hashtags, content plans)   |
+| **Billing**      | Tiered subscriptions (Starter / Growth / Pro)            |
+| **YouTube**      | YouTube Data API v3                                      |
+| **Social APIs**  | Meta Graph API v21.0, X API v2 (OAuth 2.0 PKCE)         |
+| **Monorepo**     | TurboRepo, pnpm workspaces                               |
+| **Styling**      | CSS Modules                                              |
+| **Icons**        | react-icons (Font Awesome 6)                             |
+| **Containers**   | Docker, Docker Compose                                   |
+| **Runtime**      | Node.js v24                                              |
 
 ---
 
@@ -55,19 +55,19 @@ faithreach/
 
 ## Service Architecture
 
-| Service              | Port | Database                  | Status      |
-| -------------------- | ---- | ------------------------- | ----------- |
-| Frontend             | 3000 | —                         | Implemented |
-| Auth                 | 3001 | —                         | Scaffold    |
-| User                 | 3002 | `faithreach_user`         | Implemented |
-| Post                 | 3003 | `faithreach_post`         | Implemented |
+| Service              | Port | Database               | Status      |
+| -------------------- | ---- | ---------------------- | ----------- |
+| Frontend             | 3000 | —                      | Implemented |
+| Auth                 | 3001 | —                      | Scaffold    |
+| User                 | 3002 | `faithreach_user`      | Implemented |
+| Post                 | 3003 | `faithreach_post`      | Implemented |
 | Notification         | 3004 | `faithreach_notification` | Implemented |
-| Analytics            | 3005 | —                         | Scaffold    |
-| AI Assistant         | 3006 | —                         | Implemented |
-| Content Planner      | 3007 | —                         | Implemented |
-| Billing              | 3008 | `faithreach_billing`      | Implemented |
-| Platform Integration | 3009 | `faithreach_platform`     | Implemented |
-| Scheduler            | 3010 | —                         | Implemented |
+| Analytics            | 3005 | —                      | Scaffold    |
+| AI Assistant         | 3006 | —                      | Implemented |
+| Content Planner      | 3007 | —                      | Implemented |
+| Billing              | 3008 | `faithreach_billing`   | Implemented |
+| Platform Integration | 3009 | `faithreach_platform`  | Implemented |
+| Scheduler            | 3010 | —                      | Implemented |
 
 All services use `process.env.PORT` with sensible defaults and `process.env.FRONTEND_URL` for CORS.
 
@@ -133,24 +133,24 @@ All services use `process.env.PORT` with sensible defaults and `process.env.FRON
 
 **API Proxy Routes** — Next.js API routes that proxy to backend services:
 
-| Route Pattern                            | Backend Service        |
-| ---------------------------------------- | ---------------------- |
-| `/api/user/me`                           | User (3002)            |
-| `/api/platforms/[orgId]/*`               | Platform Int. (3009)   |
-| `/api/posts/[orgId]/*`                   | Post (3003)            |
-| `/api/series/[orgId]/*`                  | Post (3003)            |
-| `/api/metrics/[orgId]/*`                 | Post (3003)            |
-| `/api/ai/rewrite`                        | AI Assistant (3006)    |
-| `/api/ai/hashtags`                       | AI Assistant (3006)    |
-| `/api/ai/can-use/[orgId]`                | Billing (3008)         |
-| `/api/planner/templates`                 | Content Planner (3007) |
-| `/api/planner/[orgId]/generate`          | Content Planner (3007) |
-| `/api/planner/[orgId]/generate-ai`       | Content Planner (3007) |
-| `/api/planner/[orgId]/can-use-ai`        | Content Planner (3007) |
-| `/api/planner/[orgId]/commit`            | Content Planner (3007) |
-| `/api/billing/[orgId]`                   | Billing (3008)         |
-| `/api/billing/[orgId]/limits`            | Billing (3008)         |
-| `/api/notifications/[orgId]/preferences` | Notification (3004)    |
+| Route Pattern                            | Backend Service       |
+| ---------------------------------------- | --------------------- |
+| `/api/user/me`                           | User (3002)           |
+| `/api/platforms/[orgId]/*`               | Platform Int. (3009)  |
+| `/api/posts/[orgId]/*`                   | Post (3003)           |
+| `/api/series/[orgId]/*`                  | Post (3003)           |
+| `/api/metrics/[orgId]/*`                 | Post (3003)           |
+| `/api/ai/rewrite`                        | AI Assistant (3006)   |
+| `/api/ai/hashtags`                       | AI Assistant (3006)   |
+| `/api/ai/can-use/[orgId]`               | Billing (3008)        |
+| `/api/planner/templates`                 | Content Planner (3007)|
+| `/api/planner/[orgId]/generate`          | Content Planner (3007)|
+| `/api/planner/[orgId]/generate-ai`       | Content Planner (3007)|
+| `/api/planner/[orgId]/can-use-ai`        | Content Planner (3007)|
+| `/api/planner/[orgId]/commit`            | Content Planner (3007)|
+| `/api/billing/[orgId]`                   | Billing (3008)        |
+| `/api/billing/[orgId]/limits`            | Billing (3008)        |
+| `/api/notifications/[orgId]/preferences` | Notification (3004)   |
 
 **OAuth Callback Page** (`/platforms/callback`) — Handles OAuth redirect flow, exchanges authorization codes with the backend.
 
@@ -165,7 +165,7 @@ Full OAuth connection management and content publishing to all platforms:
 | Instagram   | Meta OAuth (Graph API v21.0) | Photo + caption via Graph API                 | Working |
 | Facebook    | Meta OAuth (Graph API v21.0) | Text + image posts via Pages API              | Working |
 | X (Twitter) | OAuth 2.0 PKCE               | Tweets via X API v2 (with auto token refresh) | Working |
-| YouTube     | Google OAuth 2.0             | Activity bulletins via YouTube Data API v3    | Working |
+| YouTube     | Google OAuth 2.0             | Activity bulletins via YouTube Data API v3     | Working |
 | WhatsApp    | Baileys QR Code              | Direct message + CSV broadcast                | Working |
 
 **WhatsApp Integration (Baileys):**
@@ -272,11 +272,11 @@ Cron-based post scheduling with auto-publish:
 - Polls for scheduled posts and triggers publishing at scheduled times
 - Works with Post service for publish orchestration
 
-#### Auth Service (Port 3001) — _Scaffold_
+#### Auth Service (Port 3001) — *Scaffold*
 
 Clerk webhook handling endpoint. Authentication is handled directly by Clerk SDK in each service via `ClerkAuthGuard`.
 
-#### Analytics Service (Port 3005) — _Scaffold_
+#### Analytics Service (Port 3005) — *Scaffold*
 
 Scaffolded for future cross-platform analytics aggregation. Current metrics are served by the Post service.
 
@@ -426,20 +426,20 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/faithreach_notification
 
 ### Access
 
-| Service             | URL                   |
-| ------------------- | --------------------- |
-| Frontend            | http://localhost:3000 |
-| Supabase Studio     | http://localhost:3100 |
-| Auth API            | http://localhost:3001 |
-| User API            | http://localhost:3002 |
-| Post API            | http://localhost:3003 |
-| Notification API    | http://localhost:3004 |
-| Analytics API       | http://localhost:3005 |
-| AI Assistant API    | http://localhost:3006 |
-| Content Planner API | http://localhost:3007 |
-| Billing API         | http://localhost:3008 |
-| Platform Int. API   | http://localhost:3009 |
-| Scheduler API       | http://localhost:3010 |
+| Service              | URL                          |
+| -------------------- | ---------------------------- |
+| Frontend             | http://localhost:3000         |
+| Supabase Studio      | http://localhost:3100         |
+| Auth API             | http://localhost:3001         |
+| User API             | http://localhost:3002         |
+| Post API             | http://localhost:3003         |
+| Notification API     | http://localhost:3004         |
+| Analytics API        | http://localhost:3005         |
+| AI Assistant API     | http://localhost:3006         |
+| Content Planner API  | http://localhost:3007         |
+| Billing API          | http://localhost:3008         |
+| Platform Int. API    | http://localhost:3009         |
+| Scheduler API        | http://localhost:3010         |
 
 ---
 
@@ -473,13 +473,13 @@ docker compose logs -f post
 
 ## Databases
 
-| Database                  | Service              | Tables                                  |
-| ------------------------- | -------------------- | --------------------------------------- |
-| `faithreach_user`         | User (3002)          | user profiles                           |
-| `faithreach_post`         | Post (3003)          | posts, series, post_metrics             |
-| `faithreach_platform`     | Platform Int. (3009) | connections, broadcast_logs, recipients |
-| `faithreach_billing`      | Billing (3008)       | subscriptions                           |
-| `faithreach_notification` | Notification (3004)  | notification_preferences                |
+| Database                  | Service              | Tables                                    |
+| ------------------------- | -------------------- | ----------------------------------------- |
+| `faithreach_user`         | User (3002)          | user profiles                             |
+| `faithreach_post`         | Post (3003)          | posts, series, post_metrics               |
+| `faithreach_platform`     | Platform Int. (3009) | connections, broadcast_logs, recipients    |
+| `faithreach_billing`      | Billing (3008)       | subscriptions                             |
+| `faithreach_notification` | Notification (3004)  | notification_preferences                  |
 
 All databases use TypeORM with `synchronize: true` — tables are auto-created on service startup.
 

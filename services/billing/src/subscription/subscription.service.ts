@@ -75,10 +75,15 @@ export class SubscriptionService {
     return { tier: sub.tier, limits: TIER_LIMITS[sub.tier] };
   }
 
-  /** Upgrade an org's tier (will be called by Stripe webhook later) */
+  /** Upgrade an org's tier (called by payment webhook or admin) */
   async setTier(orgId: string, tier: SubscriptionTier): Promise<Subscription> {
     const sub = await this.getSubscription(orgId);
     sub.tier = tier;
+    return this.subscriptionRepo.save(sub);
+  }
+
+  /** Persist changes to a subscription */
+  async save(sub: Subscription): Promise<Subscription> {
     return this.subscriptionRepo.save(sub);
   }
 }

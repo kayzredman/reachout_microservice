@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44" fill="none">
+  <!-- AirtelTigo official: white bg, red 'a' + blue 't' -->
+  <rect width="44" height="44" rx="10" fill="#FFFFFF"/>
+  <rect x="0.5" y="0.5" width="43" height="43" rx="9.5" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+  <!-- 'a' in red -->
+  <text x="16" y="30" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#E40000" text-anchor="middle">a</text>
+  <!-- 't' in blue -->
+  <text x="30" y="30" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#004691" text-anchor="middle">t</text>
+</svg>

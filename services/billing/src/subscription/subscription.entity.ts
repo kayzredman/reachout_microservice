@@ -21,10 +21,13 @@ export class Subscription {
   currentPeriodEnd: Date;
 
   @Column({ type: 'varchar', nullable: true })
-  stripeCustomerId: string;
+  paymentProvider: string;
 
   @Column({ type: 'varchar', nullable: true })
-  stripeSubscriptionId: string;
+  paymentCustomerId: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  paymentSubscriptionId: string;
 
   @CreateDateColumn()
   createdAt: Date;

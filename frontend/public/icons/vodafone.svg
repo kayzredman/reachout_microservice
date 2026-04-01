@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+  <rect width="40" height="40" rx="10" fill="#E60000"/>
+  <text x="20" y="17" font-family="system-ui, -apple-system, sans-serif" font-size="8" font-weight="700" fill="white" text-anchor="middle">Voda</text>
+  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="8" font-weight="700" fill="white" text-anchor="middle">fone</text>
+  <!-- SIM circle -->
+  <circle cx="20" cy="34" r="2.5" fill="white" opacity="0.5"/>
+</svg>

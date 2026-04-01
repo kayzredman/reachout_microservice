@@ -1,7 +1,7 @@
 {
-  "name": "ai-assistant",
+  "name": "payment",
   "version": "0.0.1",
-  "description": "",
+  "description": "FaithReach Payment Service — provider-agnostic payment processing",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -25,9 +25,11 @@
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
-    "openai": "^6.33.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.28"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

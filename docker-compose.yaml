@@ -190,6 +190,27 @@ services:
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       FRONTEND_URL: http://localhost:3000
 
+  payment:
+    build: ./services/payment
+    container_name: faithreach-payment
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3011:3011"
+    environment:
+      PORT: 3011
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_payment
+      BILLING_SERVICE_URL: http://billing:3008
+      PAYMENT_PROVIDER: flutterwave
+      FLW_PUBLIC_KEY: ${FLW_PUBLIC_KEY}
+      FLW_SECRET_KEY: ${FLW_SECRET_KEY}
+      FLW_WEBHOOK_HASH: ${FLW_WEBHOOK_HASH}
+      FRONTEND_URL: http://localhost:3000
+
   # ── Frontend ─────────────────────────────────────────
 
   frontend:
@@ -200,6 +221,7 @@ services:
       - user
       - post
       - billing
+      - payment
       - platform-integration
     ports:
       - "3000:3000"
@@ -214,6 +236,7 @@ services:
       BILLING_URL: http://billing:3008
       NOTIFICATION_SERVICE_URL: http://notification:3004
       SCHEDULER_SERVICE_URL: http://scheduler:3010
+      PAYMENT_URL: http://payment:3011
 
 volumes:
   db-data:
