@@ -11,12 +11,13 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 | Layer            | Technology                                               |
 | ---------------- | -------------------------------------------------------- |
 | **Frontend**     | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| **Backend**      | NestJS 11, TypeScript (10 microservices)                 |
+| **Backend**      | NestJS 11, TypeScript (11 microservices)                 |
 | **Auth**         | Clerk (Organizations, RBAC)                              |
 | **Database**     | PostgreSQL 15, TypeORM                                   |
 | **WhatsApp**     | Baileys (QR-based multi-device protocol)                 |
 | **AI**           | OpenAI GPT-4o-mini (captions, hashtags, content plans)   |
-| **Billing**      | Tiered subscriptions (Starter / Growth / Pro)            |
+| **Payments**     | Flutterwave (Card + Mobile Money), multi-currency        |
+| **Billing**      | Tiered subscriptions (Starter / Creator / Ministry Pro)  |
 | **YouTube**      | YouTube Data API v3                                      |
 | **Social APIs**  | Meta Graph API v21.0, X API v2 (OAuth 2.0 PKCE)         |
 | **Monorepo**     | TurboRepo, pnpm workspaces                               |
@@ -42,7 +43,8 @@ faithreach/
 │   ├── content-planner/       # Template engine & AI content plans (port 3007)
 │   ├── billing/               # Subscription tiers & limits (port 3008) [DB]
 │   ├── platform-integration/  # OAuth, WhatsApp Baileys, publishing (port 3009) [DB]
-│   └── scheduler/             # Cron scheduling & optimal times (port 3010)
+│   ├── scheduler/             # Cron scheduling & optimal times (port 3010)
+│   └── payment/               # Flutterwave payments & MoMo (port 3011) [DB]
 ├── shared/                    # @faithreach/shared — common types & utilities
 ├── scripts/
 │   └── init-databases.sh      # Auto-create all PostgreSQL databases
@@ -68,6 +70,7 @@ faithreach/
 | Billing              | 3008 | `faithreach_billing`   | Implemented |
 | Platform Integration | 3009 | `faithreach_platform`  | Implemented |
 | Scheduler            | 3010 | —                      | Implemented |
+| Payment              | 3011 | `faithreach_payment`   | Implemented |
 
 All services use `process.env.PORT` with sensible defaults and `process.env.FRONTEND_URL` for CORS.
 
@@ -123,7 +126,7 @@ All services use `process.env.PORT` with sensible defaults and `process.env.FRON
 - **Team** — Clerk Organizations UI with invite flow, member list, and role management
 - **Platforms** — Connect/disconnect social accounts (admin-only controls), WhatsApp QR pairing, connection status indicators
 - **Notifications** — Toggle notification preferences (post published, scheduled reminders, team activity, weekly digest, platform alerts, billing updates)
-- **Billing** — Subscription tier cards (Starter/Growth/Pro), current plan indicator, upgrade/downgrade
+- **Billing** — Subscription tier cards (Starter/Creator/Ministry Pro), current plan indicator, upgrade via payment checkout
 
 **Layout** — Collapsible sidebar navigation with:
 
@@ -151,6 +154,22 @@ All services use `process.env.PORT` with sensible defaults and `process.env.FRON
 | `/api/billing/[orgId]`                   | Billing (3008)        |
 | `/api/billing/[orgId]/limits`            | Billing (3008)        |
 | `/api/notifications/[orgId]/preferences` | Notification (3004)   |
+| `/api/payment/initialize`                | Payment (3011)        |
+| `/api/payment/verify/[txRef]`            | Payment (3011)        |
+| `/api/payment/charge/momo`               | Payment (3011)        |
+| `/api/payment/validate-momo`             | Payment (3011)        |
+| `/api/payment/pricing`                   | Payment (3011)        |
+| `/api/payment/history/[orgId]`           | Payment (3011)        |
+
+**Payment Checkout** (`/payment/checkout`) — Custom payment page:
+
+- Card payments via Flutterwave Inline modal
+- Mobile Money (MTN MoMo, Telecel Cash, AirtelTigo Money) via Direct Charge API
+- Multi-currency support: GHS, NGN, KES, USD with local pricing
+- Ghana telco branded SVG icons (MTN, Telecel, AirtelTigo)
+- MoMo popup redirect flow with polling for payment completion
+- Automatic billing tier upgrade on successful payment
+- Payment callback page with transaction verification
 
 **OAuth Callback Page** (`/platforms/callback`) — Handles OAuth redirect flow, exchanges authorization codes with the backend.
 
@@ -246,7 +265,7 @@ Template engine and AI-powered content plan generation:
 
 Subscription management with persistent PostgreSQL storage:
 
-- **Three tiers:** Starter (free), Growth ($29/mo), Pro ($79/mo)
+- **Three tiers:** Starter (free), Creator, Ministry Pro
 - **Tier limits** — Max series, posts/month, AI plans/month per tier
 - **Feature gating** — `can-use` endpoints for AI rewrite, AI plans, advanced analytics
 - **Auto-provisioning** — Creates starter subscription on first request
@@ -271,6 +290,28 @@ Cron-based post scheduling with auto-publish:
 
 - Polls for scheduled posts and triggers publishing at scheduled times
 - Works with Post service for publish orchestration
+
+#### Payment Service (Port 3011)
+
+Provider-agnostic payment processing with Flutterwave integration:
+
+- **Card payments** — Flutterwave Inline modal (Visa, Mastercard, Verve)
+- **Mobile Money** — Direct Charge API for Ghana networks (MTN, Telecel, AirtelTigo)
+- **Multi-currency** — GHS, NGN, KES, USD with per-currency tier pricing
+- **Provider pattern** — `PaymentProvider` interface with `FlutterwaveProvider` implementation
+- **Payment verification** — Verify by transaction reference with Flutterwave API
+- **Webhook support** — Flutterwave webhook endpoint with hash verification
+- **Billing integration** — Auto-upgrade org tier on successful payment via billing service
+- **Payment history** — Track all payments per organization
+
+**Tier Pricing:**
+
+| Tier          | USD    | GHS    | NGN      | KES      |
+| ------------- | ------ | ------ | -------- | -------- |
+| Creator       | $9.99  | GHS 120| ₦8,000   | KSh 1,300|
+| Ministry Pro  | $29.99 | GHS 350| ₦24,000  | KSh 3,900|
+
+**Database:** `faithreach_payment` (PostgreSQL)
 
 #### Auth Service (Port 3001) — *Scaffold*
 
@@ -338,6 +379,7 @@ docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_pl
 docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_post;"
 docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_billing;"
 docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_notification;"
+docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_payment;"
 ```
 
 > TypeORM auto-creates tables via `synchronize: true` in development.
@@ -424,12 +466,35 @@ CLERK_SECRET_KEY=sk_test_...
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/faithreach_notification
 ```
 
+**Payment** (`services/payment/.env`):
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=faithreach_payment
+PORT=3011
+BILLING_SERVICE_URL=http://localhost:3008
+PAYMENT_PROVIDER=flutterwave
+FLW_PUBLIC_KEY=FLWPUBK_TEST-...
+FLW_SECRET_KEY=FLWSECK_TEST-...
+FLW_WEBHOOK_HASH=your_webhook_hash
+```
+
+**Frontend** — also needs:
+
+```env
+NEXT_PUBLIC_FLW_PUBLIC_KEY=FLWPUBK_TEST-...
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
 ### Access
 
 | Service              | URL                          |
 | -------------------- | ---------------------------- |
 | Frontend             | http://localhost:3000         |
-| Supabase Studio      | http://localhost:3100         |
+| Adminer (DB Browser) | http://localhost:8080         |
 | Auth API             | http://localhost:3001         |
 | User API             | http://localhost:3002         |
 | Post API             | http://localhost:3003         |
@@ -440,6 +505,7 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/faithreach_notification
 | Billing API          | http://localhost:3008         |
 | Platform Int. API    | http://localhost:3009         |
 | Scheduler API        | http://localhost:3010         |
+| Payment API          | http://localhost:3011         |
 
 ---
 
@@ -449,9 +515,9 @@ The project includes a complete Docker Compose setup for local development and d
 
 **What's included:**
 
-- **PostgreSQL 15** with healthchecks and auto-database creation (5 databases via `init-databases.sh`)
-- **Supabase Studio** on port 3100 for visual database management
-- **All 10 NestJS services** with multi-stage builds (`node:20-alpine`)
+- **PostgreSQL 15** with healthchecks and auto-database creation (6 databases via `init-databases.sh`)
+- **Adminer** on port 8080 for visual database management
+- **All 11 NestJS services** with multi-stage builds (`node:20-alpine`)
 - **Next.js frontend** with production build
 - **Service dependencies** — Services wait for Postgres health before starting
 - **Inter-service networking** — Services communicate via Docker service names
@@ -480,6 +546,7 @@ docker compose logs -f post
 | `faithreach_platform`     | Platform Int. (3009) | connections, broadcast_logs, recipients    |
 | `faithreach_billing`      | Billing (3008)       | subscriptions                             |
 | `faithreach_notification` | Notification (3004)  | notification_preferences                  |
+| `faithreach_payment`      | Payment (3011)       | payments                                  |
 
 All databases use TypeORM with `synchronize: true` — tables are auto-created on service startup.
 
@@ -511,8 +578,10 @@ All databases use TypeORM with `synchronize: true` — tables are auto-created o
 - [x] **Notifications** — Notification preference management (6 toggles)
 - [x] **Docker** — Full Docker Compose setup with all services
 - [x] **Dashboard & Analytics** — Overview cards, charts, platform breakdowns
-- [ ] **Stripe Integration** — Payment processing for subscription upgrades
+- [x] **Flutterwave Payments** — Card + Mobile Money (MTN, Telecel, AirtelTigo), multi-currency
+- [x] **Payment Checkout** — Custom checkout page with GHS/NGN/KES/USD pricing
 - [ ] **Email Notifications** — Actual email sending via notification service
+- [ ] **Analytics Service** — Real aggregation in analytics backend (currently scaffold)
 - [ ] **Unit Tests** — Comprehensive test coverage across services
 
 ---
