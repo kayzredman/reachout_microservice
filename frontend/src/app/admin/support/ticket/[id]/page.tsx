@@ -61,6 +61,8 @@ export default function AdminTicketDetailPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sendViaWhatsApp, setSendViaWhatsApp] = useState(false);
+  const [waPhone, setWaPhone] = useState("");
+  const [waPhoneSaving, setWaPhoneSaving] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
@@ -104,8 +106,10 @@ export default function AdminTicketDetailPage() {
 
     socket.on("new_message", (msg: Message) => {
       setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
+        // If this is our own message coming back, replace the optimistic temp entry
+        const withoutTemp = prev.filter((m) => !m.id.startsWith("temp-") || m.senderId !== msg.senderId || m.content !== msg.content);
+        if (withoutTemp.some((m) => m.id === msg.id)) return withoutTemp;
+        return [...withoutTemp, msg];
       });
     });
 
@@ -125,39 +129,43 @@ export default function AdminTicketDetailPage() {
     setInput("");
     setSending(true);
 
-    try {
-      const body: Record<string, unknown> = {
-        senderId: userId,
-        senderRole: "admin",
-        senderName: user?.firstName
-          ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-          : "Support",
-        content: text,
-      };
+    const senderName = user?.firstName
+      ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+      : "Support";
 
+    // Optimistic: show message instantly
+    const optimisticMsg: Message = {
+      id: `temp-${Date.now()}`,
+      senderId: userId || "",
+      senderRole: "admin",
+      senderName,
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    try {
       // Send via WebSocket so message is broadcast to all connected clients (including user widget)
       if (socketRef.current?.connected) {
         socketRef.current.emit("send_message", {
           ticketId: id,
           senderId: userId,
           senderRole: "admin",
-          senderName: body.senderName,
+          senderName,
           content: text,
         });
       } else {
         // Fallback to REST if WebSocket is disconnected
-        const res = await fetch(`/api/support/tickets/${id}/messages`, {
+        await fetch(`/api/support/tickets/${id}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            senderId: userId,
+            senderRole: "admin",
+            senderName,
+            content: text,
+          }),
         });
-        if (res.ok) {
-          const msg = await res.json();
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-        }
       }
 
       // Send via WhatsApp if toggled on and ticket has WhatsApp phone
@@ -196,6 +204,24 @@ export default function AdminTicketDetailPage() {
         body: JSON.stringify({ action: "status_change", ticketId: id, status }),
       });
     } catch { /* ignore */ }
+  };
+
+  const saveWhatsAppPhone = async () => {
+    const phone = waPhone.trim();
+    if (!phone || waPhoneSaving) return;
+    setWaPhoneSaving(true);
+    try {
+      const res = await fetch(`/api/support/tickets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsappPhone: phone }),
+      });
+      if (res.ok) {
+        setTicket((prev) => prev ? { ...prev, whatsappPhone: phone } : prev);
+        setWaPhone("");
+      }
+    } catch { /* ignore */ }
+    finally { setWaPhoneSaving(false); }
   };
 
   if (!isLoaded || !isSystemAdmin) return <div className={styles.page}><div className={styles.loading}>Checking access...</div></div>;
@@ -261,10 +287,33 @@ export default function AdminTicketDetailPage() {
               <span className={styles.fieldValue}>{new Date(ticket.createdAt).toLocaleString()}</span>
             </div>
 
-            {ticket.whatsappPhone && (
+            {ticket.whatsappPhone ? (
               <div className={styles.fieldGroup}>
                 <label>WhatsApp</label>
                 <span className={styles.fieldValue}>{ticket.whatsappPhone}</span>
+              </div>
+            ) : (
+              <div className={styles.waPhoneGroup}>
+                <label>WhatsApp Number</label>
+                <div className={styles.waPhoneInput}>
+                  <input
+                    type="tel"
+                    value={waPhone}
+                    onChange={(e) => setWaPhone(e.target.value)}
+                    placeholder="e.g. 233241234567"
+                    className={styles.waPhoneField}
+                  />
+                  <button
+                    className={styles.waPhoneSaveBtn}
+                    onClick={saveWhatsAppPhone}
+                    disabled={!waPhone.trim() || waPhoneSaving}
+                  >
+                    {waPhoneSaving ? "..." : "Save"}
+                  </button>
+                </div>
+                <span className={styles.waPhoneHint}>
+                  Add client&apos;s WhatsApp to also chat via WhatsApp
+                </span>
               </div>
             )}
           </div>

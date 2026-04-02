@@ -168,7 +168,7 @@ export default function AdminSupportPage() {
   // Auto-refresh ticket list every 15s
   useEffect(() => {
     if (!isSystemAdmin) return;
-    const interval = setInterval(silentRefresh, 15000);
+    const interval = setInterval(silentRefresh, 5000);
     return () => clearInterval(interval);
   }, [isSystemAdmin, silentRefresh]);
 
