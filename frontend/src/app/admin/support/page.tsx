@@ -146,8 +146,31 @@ export default function AdminSupportPage() {
 
   if (!isLoaded || !isSystemAdmin) return <div className={styles.empty}>Checking access...</div>;
 
+  const silentRefresh = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const [ticketRes, adminRes] = await Promise.all([
+        fetch("/api/support/admin", { headers }),
+        fetch("/api/support/admin?admins=true", { headers }),
+      ]);
+      if (ticketRes.ok) {
+        const data = await ticketRes.json();
+        setStats(data.stats);
+        setTickets(data.tickets);
+      }
+      if (adminRes.ok) {
+        const data = await adminRes.json();
+        setAdmins(data.admins || []);
+      }
+    } catch { /* ignore */ }
+  }, [getToken]);
+
   const handleAssign = async (ticketId: string, assignedTo: string) => {
     setOpenAssign(null);
+    // Optimistic update
+    setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, assignedTo } : t)));
     try {
       await fetch(`/api/support/admin`, {
         method: "POST",
@@ -155,11 +178,13 @@ export default function AdminSupportPage() {
         body: JSON.stringify({ action: "assign", ticketId, assignedTo }),
       });
     } catch { /* ignore */ }
-    fetchData();
+    silentRefresh();
   };
 
   const handleStatusChange = async (ticketId: string, status: string) => {
     setOpenStatus(null);
+    // Optimistic update
+    setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status } : t)));
     try {
       await fetch(`/api/support/admin`, {
         method: "POST",
@@ -167,7 +192,7 @@ export default function AdminSupportPage() {
         body: JSON.stringify({ action: "status_change", ticketId, status }),
       });
     } catch { /* ignore */ }
-    fetchData();
+    silentRefresh();
   };
 
   if (!isLoaded || !isSystemAdmin) return <div className={styles.empty}>Checking access...</div>;

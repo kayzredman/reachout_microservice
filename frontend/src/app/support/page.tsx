@@ -133,6 +133,10 @@ export default function SupportPage() {
           actions: data.actions,
         },
       ]);
+      // Auto-refresh tickets if an escalation happened
+      if (data.actions?.some((a: { action: string }) => a.action === "escalate_to_human")) {
+        fetchTickets();
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -188,7 +192,7 @@ export default function SupportPage() {
                 {m.content}
                 {m.actions?.map((a, j) => (
                   <div key={j} className={styles.actionBadge}>
-                    Action: {a.action.replace(/_/g, " ")}
+                    {a.action === "escalate_to_human" ? "Escalated to support engineer" : `Action: ${a.action.replace(/_/g, " ")}`}
                     {a.result ? ` — ${a.result}` : ""}
                   </div>
                 ))}
