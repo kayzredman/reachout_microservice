@@ -19,10 +19,9 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("./user.entity");
 let UserService = UserService_1 = class UserService {
-    userRepository;
-    logger = new common_1.Logger(UserService_1.name);
     constructor(userRepository) {
         this.userRepository = userRepository;
+        this.logger = new common_1.Logger(UserService_1.name);
     }
     async getOrCreateByClerk(clerkId, clerkPayload) {
         let user = await this.userRepository.findOne({ where: { id: clerkId } });
@@ -43,13 +42,7 @@ let UserService = UserService_1 = class UserService {
         if (!user)
             return null;
         const { name, bio, location, organization, role } = updates;
-        await this.userRepository.update(clerkId, {
-            ...(name !== undefined && { name }),
-            ...(bio !== undefined && { bio }),
-            ...(location !== undefined && { location }),
-            ...(organization !== undefined && { organization }),
-            ...(role !== undefined && { role }),
-        });
+        await this.userRepository.update(clerkId, Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name !== undefined && { name })), (bio !== undefined && { bio })), (location !== undefined && { location })), (organization !== undefined && { organization })), (role !== undefined && { role })));
         return this.userRepository.findOne({ where: { id: clerkId } });
     }
     async webhookSync(payload) {

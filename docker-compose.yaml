@@ -235,6 +235,29 @@ services:
       FLW_WEBHOOK_HASH: ${FLW_WEBHOOK_HASH}
       FRONTEND_URL: http://localhost:3000
 
+  support:
+    build: ./services/support
+    container_name: faithreach-support
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "3012:3012"
+    environment:
+      PORT: 3012
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: faithreach_support
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      USER_SERVICE_URL: http://user:3002
+      POST_SERVICE_URL: http://post:3003
+      BILLING_SERVICE_URL: http://billing:3008
+      PLATFORM_SERVICE_URL: http://platform-integration:3009
+      SCHEDULER_SERVICE_URL: http://scheduler:3010
+      PAYMENT_SERVICE_URL: http://payment:3011
+      FRONTEND_URL: http://localhost:3000
+
   # ── Frontend ─────────────────────────────────────────
 
   frontend:
@@ -261,6 +284,7 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification:3004
       SCHEDULER_SERVICE_URL: http://scheduler:3010
       PAYMENT_URL: http://payment:3011
+      SUPPORT_SERVICE_URL: http://support:3012
 
 volumes:
   db-data:

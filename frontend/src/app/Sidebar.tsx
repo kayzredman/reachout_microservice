@@ -12,6 +12,7 @@ import {
   HiOutlineChartBar,
   HiOutlineClipboardList,
   HiOutlineCog,
+  HiOutlineChatAlt2,
 } from "react-icons/hi";
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Scheduler", href: "/scheduler", icon: <HiOutlineClock /> },
   { label: "Analytics", href: "/analytics", icon: <HiOutlineChartBar /> },
   { label: "Planner", href: "/planner", icon: <HiOutlineClipboardList /> },
+  { label: "Support", href: "/support", icon: <HiOutlineChatAlt2 /> },
   { label: "Settings", href: "/settings", icon: <HiOutlineCog /> },
 ];
 
