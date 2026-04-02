@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import {
   HiOutlineArrowLeft,
   HiOutlineCheckCircle,
   HiOutlineTicket,
+  HiOutlineChevronDown,
 } from "react-icons/hi";
 import styles from "./admin-support.module.css";
 
@@ -31,6 +32,12 @@ interface Ticket {
   createdAt: string;
 }
 
+interface AdminUser {
+  id: string;
+  name: string;
+  imageUrl?: string;
+}
+
 const STATUS_CLASS: Record<string, string> = {
   open: styles.badgeOpen,
   escalated: styles.badgeEscalated,
@@ -46,6 +53,12 @@ const PRIORITY_CLASS: Record<string, string> = {
 };
 
 const FILTER_OPTIONS = ["all", "open", "escalated", "in_progress", "resolved"] as const;
+const STATUS_OPTIONS = [
+  { value: "open", label: "Open" },
+  { value: "escalated", label: "Escalated" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "resolved", label: "Resolved" },
+];
 
 function formatDuration(ms: number | null): string {
   if (!ms) return "—";
@@ -55,6 +68,32 @@ function formatDuration(ms: number | null): string {
   return `${Math.round(hours / 24)} day(s)`;
 }
 
+/* ── Dropdown component ─────────────────────────────── */
+function Dropdown({ trigger, children, open, onToggle }: {
+  trigger: React.ReactNode;
+  children: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onToggle();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, onToggle]);
+
+  return (
+    <div className={styles.dropdown} ref={ref}>
+      <div onClick={onToggle}>{trigger}</div>
+      {open && <div className={styles.dropdownMenu}>{children}</div>}
+    </div>
+  );
+}
+
 export default function AdminSupportPage() {
   const { getToken } = useAuth();
   const { user, isLoaded } = useUser();
@@ -62,8 +101,11 @@ export default function AdminSupportPage() {
   const isSystemAdmin = (user?.publicMetadata as Record<string, unknown>)?.systemAdmin === true;
   const [stats, setStats] = useState<Stats | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [openAssign, setOpenAssign] = useState<string | null>(null);
+  const [openStatus, setOpenStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && !isSystemAdmin) {
@@ -75,13 +117,22 @@ export default function AdminSupportPage() {
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch("/api/support/admin", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setStats(data.stats);
-      setTickets(data.tickets);
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const [ticketRes, adminRes] = await Promise.all([
+        fetch("/api/support/admin", { headers }),
+        fetch("/api/support/admin?admins=true", { headers }),
+      ]);
+      if (ticketRes.ok) {
+        const data = await ticketRes.json();
+        setStats(data.stats);
+        setTickets(data.tickets);
+      }
+      if (adminRes.ok) {
+        const data = await adminRes.json();
+        setAdmins(data.admins || []);
+      }
     } catch {
       /* ignore */
     } finally {
@@ -95,26 +146,25 @@ export default function AdminSupportPage() {
 
   if (!isLoaded || !isSystemAdmin) return <div className={styles.empty}>Checking access...</div>;
 
-  const handleAssign = async (ticketId: string) => {
-    const assignee = prompt("Enter admin name or ID to assign:");
-    if (!assignee) return;
+  const handleAssign = async (ticketId: string, assignedTo: string) => {
+    setOpenAssign(null);
     try {
       await fetch(`/api/support/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "assign", ticketId, assignedTo: assignee }),
+        body: JSON.stringify({ action: "assign", ticketId, assignedTo }),
       });
     } catch { /* ignore */ }
     fetchData();
   };
 
-  const handleResolve = async (ticketId: string) => {
-    if (!confirm("Mark this ticket as resolved?")) return;
+  const handleStatusChange = async (ticketId: string, status: string) => {
+    setOpenStatus(null);
     try {
       await fetch(`/api/support/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "resolve", ticketId }),
+        body: JSON.stringify({ action: "status_change", ticketId, status }),
       });
     } catch { /* ignore */ }
     fetchData();
@@ -210,19 +260,58 @@ export default function AdminSupportPage() {
                   </div>
                 </div>
                 <div className={styles.ticketActions}>
-                  {!t.assignedTo ? (
-                    <button className={styles.assignBtn} onClick={() => handleAssign(t.id)}>
-                      Assign
-                    </button>
-                  ) : (
-                    <span className={styles.assignedTag}>{t.assignedTo}</span>
-                  )}
-                  {t.status !== "resolved" && t.status !== "closed" && (
-                    <button className={styles.resolveBtn} onClick={() => handleResolve(t.id)}>
-                      <HiOutlineCheckCircle style={{ marginRight: 4, verticalAlign: "middle" }} />
-                      Resolve
-                    </button>
-                  )}
+                  {/* Assign dropdown */}
+                  <Dropdown
+                    open={openAssign === t.id}
+                    onToggle={() => setOpenAssign(openAssign === t.id ? null : t.id)}
+                    trigger={
+                      <button className={styles.assignBtn}>
+                        {t.assignedTo
+                          ? admins.find((a) => a.id === t.assignedTo || a.name === t.assignedTo)?.name || t.assignedTo
+                          : "Assign"}
+                        <HiOutlineChevronDown style={{ marginLeft: 4, fontSize: "0.75rem" }} />
+                      </button>
+                    }
+                  >
+                    {admins.length === 0 ? (
+                      <div className={styles.dropdownItem} style={{ color: "#9ca3af" }}>No admins found</div>
+                    ) : (
+                      admins.map((a) => (
+                        <button
+                          key={a.id}
+                          className={`${styles.dropdownItem} ${t.assignedTo === a.id || t.assignedTo === a.name ? styles.dropdownItemActive : ""}`}
+                          onClick={() => handleAssign(t.id, a.name)}
+                        >
+                          {a.name}
+                        </button>
+                      ))
+                    )}
+                  </Dropdown>
+
+                  {/* Status dropdown */}
+                  <Dropdown
+                    open={openStatus === t.id}
+                    onToggle={() => setOpenStatus(openStatus === t.id ? null : t.id)}
+                    trigger={
+                      <button className={styles.statusBtn}>
+                        <span className={`${styles.statusDot} ${STATUS_CLASS[t.status] || ""}`} />
+                        {t.status.replace(/_/g, " ")}
+                        <HiOutlineChevronDown style={{ marginLeft: 4, fontSize: "0.75rem" }} />
+                      </button>
+                    }
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        className={`${styles.dropdownItem} ${t.status === opt.value ? styles.dropdownItemActive : ""}`}
+                        onClick={() => handleStatusChange(t.id, opt.value)}
+                      >
+                        <span className={`${styles.badge} ${STATUS_CLASS[opt.value] || ""}`} style={{ fontSize: "0.68rem" }}>
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
+                  </Dropdown>
                 </div>
               </div>
             ))}

@@ -50,6 +50,20 @@ export class AdminService {
     return ticket;
   }
 
+  async changeStatus(ticketId: string, status: string) {
+    const valid = Object.values(TicketStatus) as string[];
+    if (!valid.includes(status)) {
+      throw new NotFoundException(`Invalid status: ${status}`);
+    }
+    const update: Record<string, any> = { status };
+    if (status === TicketStatus.RESOLVED) {
+      update.resolvedAt = new Date();
+    }
+    const ticket = await this.ticketsService.update(ticketId, update);
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    return ticket;
+  }
+
   /** Gather health signals for an org (used by admin dashboard) */
   async getOrgHealth(orgId: string) {
     const context = await this.contextGatherer.gather(orgId, '');

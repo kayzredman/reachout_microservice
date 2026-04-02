@@ -41,6 +41,15 @@ export class AdminController {
     return this.adminService.resolveTicket(id, body.summary);
   }
 
+  /** PATCH /admin/support/tickets/:id/status — change ticket status */
+  @Patch('tickets/:id/status')
+  changeStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.adminService.changeStatus(id, body.status);
+  }
+
   /** GET /admin/support/health?orgId=xxx — at-risk signals for an org */
   @Get('health')
   getOrgHealth(@Query('orgId') orgId: string) {
