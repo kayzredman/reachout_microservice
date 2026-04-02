@@ -140,6 +140,7 @@ export default function AdminOrgDetailPage() {
 
   return (
     <div className={styles.dashboard}>
+      <div className={styles.inner}>
       {/* Breadcrumb */}
       <div className={styles.breadcrumb}>
         <Link href="/admin/organizations" className={styles.breadcrumbLink}>
@@ -212,6 +213,7 @@ export default function AdminOrgDetailPage() {
         {activeTab === "tickets" && <TicketsTab tickets={tickets} />}
         {activeTab === "billing" && <BillingTab billing={billing} />}
         {activeTab === "platforms" && <PlatformsTab platforms={platforms} />}
+      </div>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   HiOutlineUsers,
   HiOutlineSearch,
   HiOutlineChevronRight,
+  HiOutlineArrowLeft,
 } from "react-icons/hi";
 import styles from "./admin-orgs.module.css";
 
@@ -73,6 +74,11 @@ export default function AdminOrganizationsPage() {
 
   return (
     <div className={styles.dashboard}>
+      <div className={styles.inner}>
+      <Link href="/admin" className={styles.backLink}>
+        <HiOutlineArrowLeft /> Back to Dashboard
+      </Link>
+
       {/* Page header */}
       <div className={styles.pageHeader}>
         <div className={styles.pageHeaderContent}>
@@ -192,6 +198,7 @@ export default function AdminOrganizationsPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   HiOutlineChatAlt2,
   HiOutlineShieldCheck,
   HiOutlineOfficeBuilding,
+  HiOutlineViewGridAdd,
 } from "react-icons/hi";
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
 ];
 
 const adminItems = [
+  { label: "Admin Dashboard", href: "/admin", icon: <HiOutlineViewGridAdd /> },
   { label: "Organizations", href: "/admin/organizations", icon: <HiOutlineOfficeBuilding /> },
   { label: "Support Admin", href: "/admin/support", icon: <HiOutlineShieldCheck /> },
 ];
