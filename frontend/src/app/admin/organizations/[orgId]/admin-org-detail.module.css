@@ -1,0 +1,243 @@
+.dashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  font-size: 0.88rem;
+  color: #71717a;
+  margin-bottom: 1.5rem;
+}
+.breadcrumb a {
+  color: #7c3aed;
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+.breadcrumbSep {
+  margin: 0 0.4rem;
+  color: #d4d4d8;
+}
+
+/* Org header */
+.orgHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.orgAvatar {
+  border-radius: 14px;
+  object-fit: cover;
+}
+.orgAvatarPlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  background: #f3f0ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.orgName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #18181b;
+  margin: 0;
+}
+.orgMeta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #71717a;
+  margin-top: 0.25rem;
+}
+
+/* Tabs */
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e4e4e7;
+  margin-bottom: 1.5rem;
+}
+.tab {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #71717a;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tab:hover {
+  color: #18181b;
+}
+.tabActive {
+  color: #7c3aed;
+  border-bottom-color: #7c3aed;
+}
+.tabCount {
+  background: #f3f0ff;
+  color: #7c3aed;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.tabContent {
+  min-height: 200px;
+}
+
+/* Members */
+.membersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.memberCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+}
+.memberAvatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+.memberAvatarPlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f3f0ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.memberInfo {
+  flex: 1;
+}
+.memberName {
+  font-weight: 600;
+  color: #18181b;
+}
+.memberRole {
+  font-size: 0.82rem;
+  color: #71717a;
+}
+.memberJoined {
+  font-size: 0.82rem;
+  color: #a1a1aa;
+}
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+.table th {
+  background: #fafafa;
+  color: #71717a;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e4e4e7;
+}
+.table td {
+  border-bottom: 1px solid #f4f4f5;
+  color: #18181b;
+}
+.table tr:hover td {
+  background: #fafafa;
+}
+
+/* Badge */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Info grid */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.infoItem {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 1rem;
+}
+.infoLabel {
+  font-size: 0.8rem;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.infoValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #18181b;
+}
+
+/* Platforms */
+.platformsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+.platformCard {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.platformName {
+  font-weight: 600;
+  color: #18181b;
+  text-transform: capitalize;
+}
+.platformStatus {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #a1a1aa;
+}

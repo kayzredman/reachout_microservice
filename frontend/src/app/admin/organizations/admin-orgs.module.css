@@ -1,0 +1,124 @@
+.dashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+.header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #18181b;
+}
+.header p {
+  color: #71717a;
+  margin-top: 0.25rem;
+}
+
+/* Stats */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.statCard {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 14px;
+  padding: 1.25rem;
+  text-align: center;
+}
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #18181b;
+}
+.statLabel {
+  font-size: 0.82rem;
+  color: #71717a;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Search */
+.searchBar {
+  margin-bottom: 1.5rem;
+}
+.searchInput {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.6rem 1rem;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.searchInput:focus {
+  border-color: #7c3aed;
+}
+
+/* Org grid */
+.orgGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+.orgCard {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 14px;
+  padding: 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+.orgCard:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.08);
+}
+.orgCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.orgAvatar {
+  border-radius: 12px;
+  object-fit: cover;
+}
+.orgAvatarPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f3f0ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.orgName {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #18181b;
+}
+.orgSlug {
+  font-size: 0.82rem;
+  color: #a1a1aa;
+}
+.orgMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: #71717a;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #a1a1aa;
+}

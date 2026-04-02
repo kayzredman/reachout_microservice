@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
 
 const isAdminRoute = createRouteMatcher([
   '/admin(.*)',
+  '/api/admin(.*)',
   '/api/support/admin(.*)',
 ]);
 
