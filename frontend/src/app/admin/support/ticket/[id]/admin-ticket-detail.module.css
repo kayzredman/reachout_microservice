@@ -292,6 +292,8 @@
   font-size: 0.9rem;
   outline: none;
   background: #fff;
+  color: #18181b;
+  font-family: inherit;
 }
 
 .chatInput input:focus {

@@ -135,33 +135,42 @@ export default function AdminTicketDetailPage() {
         content: text,
       };
 
-      // Send via REST first
-      const res = await fetch(`/api/support/tickets/${id}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        const msg = await res.json();
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === msg.id)) return prev;
-          return [...prev, msg];
+      // Send via WebSocket so message is broadcast to all connected clients (including user widget)
+      if (socketRef.current?.connected) {
+        socketRef.current.emit("send_message", {
+          ticketId: id,
+          senderId: userId,
+          senderRole: "admin",
+          senderName: body.senderName,
+          content: text,
         });
-
-        // Send via WhatsApp if toggled on and ticket has WhatsApp phone
-        if (sendViaWhatsApp && ticket?.whatsappPhone && ticket.orgId) {
-          fetch("/api/support/tickets/whatsapp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              orgId: ticket.orgId,
-              phone: ticket.whatsappPhone,
-              message: text,
-              ticketMessageId: msg.id,
-            }),
-          }).catch(() => { /* silent */ });
+      } else {
+        // Fallback to REST if WebSocket is disconnected
+        const res = await fetch(`/api/support/tickets/${id}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const msg = await res.json();
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
         }
+      }
+
+      // Send via WhatsApp if toggled on and ticket has WhatsApp phone
+      if (sendViaWhatsApp && ticket?.whatsappPhone && ticket.orgId) {
+        fetch("/api/support/tickets/whatsapp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orgId: ticket.orgId,
+            phone: ticket.whatsappPhone,
+            message: text,
+          }),
+        }).catch(() => { /* silent */ });
       }
     } catch {
       /* ignore */

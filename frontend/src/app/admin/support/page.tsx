@@ -165,6 +165,13 @@ export default function AdminSupportPage() {
     if (isSystemAdmin) fetchData();
   }, [isSystemAdmin, fetchData]);
 
+  // Auto-refresh ticket list every 15s
+  useEffect(() => {
+    if (!isSystemAdmin) return;
+    const interval = setInterval(silentRefresh, 15000);
+    return () => clearInterval(interval);
+  }, [isSystemAdmin, silentRefresh]);
+
   const handleAssign = useCallback(async (ticketId: string, assignedTo: string) => {
     setOpenAssign(null);
     setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, assignedTo } : t)));
