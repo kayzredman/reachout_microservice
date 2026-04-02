@@ -2,12 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth, useOrganization, useUser } from "@clerk/nextjs";
+import { io, Socket } from "socket.io-client";
 import styles from "./floating-support.module.css";
 
 interface ChatMsg {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "admin" | "system";
   content: string;
   actions?: { action: string; result?: string }[];
+  id?: string;
 }
 
 type View = "closed" | "menu" | "chat" | "ticket";
@@ -26,6 +28,12 @@ export default function FloatingSupport() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEnd = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  /* Live mode state (after escalation) */
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
 
   /* Ticket form state */
   const [ticketSubject, setTicketSubject] = useState("");
@@ -54,9 +62,80 @@ export default function FloatingSupport() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [view]);
 
+  /* Connect WebSocket when ticketId is set */
+  useEffect(() => {
+    if (!ticketId) return;
+    setConnecting(true);
+
+    const wsUrl = process.env.NEXT_PUBLIC_SUPPORT_WS_URL || "http://localhost:3012";
+    const socket = io(`${wsUrl}/tickets`, { transports: ["websocket", "polling"] });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("join_ticket", { ticketId });
+      setLiveConnected(true);
+      setConnecting(false);
+    });
+
+    socket.on("new_message", (msg: { id: string; senderId: string; senderRole: string; senderName?: string; content: string }) => {
+      // Only show messages from admin/system — our own messages are already in state
+      if (msg.senderId === userId) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [
+          ...prev,
+          {
+            role: msg.senderRole === "admin" ? "admin" as const : "system" as const,
+            content: msg.content,
+            id: msg.id,
+          },
+        ];
+      });
+    });
+
+    socket.on("disconnect", () => {
+      setLiveConnected(false);
+    });
+
+    return () => {
+      socket.emit("leave_ticket", { ticketId });
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [ticketId, userId]);
+
+  /* Load existing ticket messages when connecting to live mode */
+  useEffect(() => {
+    if (!ticketId || !liveConnected) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/support/tickets/${ticketId}/messages`);
+        if (!res.ok) return;
+        const existingMsgs: { id: string; senderId: string; senderRole: string; senderName?: string; content: string }[] = await res.json();
+        // Only add admin/system messages we don't have yet
+        const newMsgs = existingMsgs.filter(
+          (m) => m.senderId !== userId && m.senderRole !== "user"
+        );
+        if (newMsgs.length > 0) {
+          setMessages((prev) => {
+            const ids = new Set(prev.filter((p) => p.id).map((p) => p.id));
+            const toAdd = newMsgs
+              .filter((m) => !ids.has(m.id))
+              .map((m) => ({
+                role: m.senderRole === "admin" ? "admin" as const : "system" as const,
+                content: m.content,
+                id: m.id,
+              }));
+            return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+          });
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [ticketId, liveConnected, userId]);
+
   const toggleWidget = () => setView(view === "closed" ? "menu" : "closed");
 
-  /* ── Chat ── */
+  /* ── Chat (AI mode) ── */
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -80,6 +159,10 @@ export default function FloatingSupport() {
           actions: data.actions,
         },
       ]);
+      // If escalation happened, transition to live mode
+      if (data.ticketId) {
+        setTicketId(data.ticketId);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -90,10 +173,53 @@ export default function FloatingSupport() {
     }
   };
 
+  /* ── Chat (Live mode — after escalation) ── */
+  const sendLiveMessage = async () => {
+    const text = input.trim();
+    if (!text || sending || !ticketId) return;
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setInput("");
+    setSending(true);
+
+    try {
+      // Send via WebSocket for real-time delivery
+      if (socketRef.current?.connected) {
+        socketRef.current.emit("send_message", {
+          ticketId,
+          senderId: userId,
+          senderRole: "user",
+          senderName: user?.firstName || "User",
+          content: text,
+        });
+      } else {
+        // Fallback to REST
+        await fetch(`/api/support/tickets/${ticketId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            senderId: userId,
+            senderRole: "user",
+            senderName: user?.firstName || "User",
+            content: text,
+          }),
+        });
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "system", content: "Failed to send message. Please try again." },
+      ]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSend = ticketId ? sendLiveMessage : sendMessage;
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSend();
     }
   };
 
@@ -144,7 +270,7 @@ export default function FloatingSupport() {
             )}
             <span className={styles.panelTitle}>
               {view === "menu" && "How can we help?"}
-              {view === "chat" && "AI Assistant"}
+              {view === "chat" && (ticketId ? "Support Engineer" : "AI Assistant")}
               {view === "ticket" && "Submit a Ticket"}
             </span>
             <div className={styles.headerSpacer} />
@@ -229,7 +355,15 @@ export default function FloatingSupport() {
                   </div>
                 )}
                 {messages.map((m, i) => (
-                  <div key={i} className={m.role === "user" ? styles.msgUser : styles.msgAssistant}>
+                  <div key={i} className={
+                    m.role === "user" ? styles.msgUser
+                    : m.role === "admin" ? styles.msgAdmin
+                    : m.role === "system" ? styles.msgSystem
+                    : styles.msgAssistant
+                  }>
+                    {m.role === "admin" && (
+                      <span className={styles.adminLabel}>Support Engineer</span>
+                    )}
                     {m.content}
                     {m.actions?.map((a, j) => (
                       <div key={j} className={styles.actionBadge}>
@@ -241,6 +375,44 @@ export default function FloatingSupport() {
                     ))}
                   </div>
                 ))}
+                {/* Escalation transition banner */}
+                {ticketId && (
+                  <div className={styles.escalationBanner}>
+                    <div className={styles.escalationIcon}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                    <div className={styles.escalationText}>
+                      {connecting ? (
+                        <>
+                          <strong>Connecting to support engineer...</strong>
+                          <span>Please hold on while we connect you.</span>
+                        </>
+                      ) : liveConnected ? (
+                        <>
+                          <strong>Connected to support</strong>
+                          <span>A support engineer will respond here shortly. You can continue chatting.</span>
+                        </>
+                      ) : (
+                        <>
+                          <strong>Connection lost</strong>
+                          <span>Trying to reconnect...</span>
+                        </>
+                      )}
+                    </div>
+                    {connecting && (
+                      <div className={styles.connectingDots}>
+                        <span className={styles.typingDot} />
+                        <span className={styles.typingDot} />
+                        <span className={styles.typingDot} />
+                      </div>
+                    )}
+                  </div>
+                )}
                 {sending && (
                   <div className={styles.typingWrap}>
                     <span className={styles.typingDot} />
@@ -260,7 +432,7 @@ export default function FloatingSupport() {
                 />
                 <button
                   className={styles.sendBtn}
-                  onClick={sendMessage}
+                  onClick={handleSend}
                   disabled={sending || !input.trim()}
                   aria-label="Send"
                 >

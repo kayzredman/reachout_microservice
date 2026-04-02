@@ -140,12 +140,6 @@ export default function AdminSupportPage() {
     }
   }, [getToken]);
 
-  useEffect(() => {
-    if (isSystemAdmin) fetchData();
-  }, [isSystemAdmin, fetchData]);
-
-  if (!isLoaded || !isSystemAdmin) return <div className={styles.empty}>Checking access...</div>;
-
   const silentRefresh = useCallback(async () => {
     try {
       const token = await getToken();
@@ -167,9 +161,12 @@ export default function AdminSupportPage() {
     } catch { /* ignore */ }
   }, [getToken]);
 
-  const handleAssign = async (ticketId: string, assignedTo: string) => {
+  useEffect(() => {
+    if (isSystemAdmin) fetchData();
+  }, [isSystemAdmin, fetchData]);
+
+  const handleAssign = useCallback(async (ticketId: string, assignedTo: string) => {
     setOpenAssign(null);
-    // Optimistic update
     setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, assignedTo } : t)));
     try {
       await fetch(`/api/support/admin`, {
@@ -179,11 +176,10 @@ export default function AdminSupportPage() {
       });
     } catch { /* ignore */ }
     silentRefresh();
-  };
+  }, [silentRefresh]);
 
-  const handleStatusChange = async (ticketId: string, status: string) => {
+  const handleStatusChange = useCallback(async (ticketId: string, status: string) => {
     setOpenStatus(null);
-    // Optimistic update
     setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status } : t)));
     try {
       await fetch(`/api/support/admin`, {
@@ -193,7 +189,7 @@ export default function AdminSupportPage() {
       });
     } catch { /* ignore */ }
     silentRefresh();
-  };
+  }, [silentRefresh]);
 
   if (!isLoaded || !isSystemAdmin) return <div className={styles.empty}>Checking access...</div>;
 

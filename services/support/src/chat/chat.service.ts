@@ -264,7 +264,7 @@ export class ChatService {
     userId: string,
     userMessage: string,
     conversationId?: string,
-  ): Promise<{ conversationId: string; reply: string; actions: Record<string, any>[] }> {
+  ): Promise<{ conversationId: string; reply: string; actions: Record<string, any>[]; ticketId?: string }> {
     const conv = await this.getOrCreateConversation(orgId, userId, conversationId);
 
     // Save user message
@@ -421,7 +421,14 @@ Health Signals: ${context.healthSignals.length > 0 ? context.healthSignals.join(
     });
     await this.msgRepo.save(assistantMsg);
 
-    return { conversationId: conv.id, reply, actions: allActions };
+    // If escalation happened, include the ticketId in response
+    const escalation = allActions.find((a) => a.action === 'escalate_to_human');
+    return {
+      conversationId: conv.id,
+      reply,
+      actions: allActions,
+      ...(escalation?.ticketId ? { ticketId: escalation.ticketId } : {}),
+    };
   }
 
   /** Get conversation history */
