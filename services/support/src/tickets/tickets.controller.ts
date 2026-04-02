@@ -9,11 +9,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service.js';
+import { TicketMessagesService } from './ticket-messages.service.js';
 import { TicketCategory, TicketPriority } from './ticket.entity.js';
+import { SenderRole } from './ticket-message.entity.js';
 
 @Controller('tickets')
 export class TicketsController {
-  constructor(private readonly svc: TicketsService) {}
+  constructor(
+    private readonly svc: TicketsService,
+    private readonly msgSvc: TicketMessagesService,
+  ) {}
 
   /** POST /tickets — create a new support ticket */
   @Post()
@@ -70,5 +75,40 @@ export class TicketsController {
     const ticket = await this.svc.resolve(id, body.aiSummary);
     if (!ticket) throw new NotFoundException('Ticket not found');
     return ticket;
+  }
+
+  /* ── Ticket Messages (human-to-human chat) ── */
+
+  /** GET /tickets/:id/messages — list messages on a ticket */
+  @Get(':id/messages')
+  getMessages(@Param('id') id: string) {
+    return this.msgSvc.findByTicket(id);
+  }
+
+  /** POST /tickets/:id/messages — add a message to a ticket */
+  @Post(':id/messages')
+  addMessage(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      senderId: string;
+      senderRole: SenderRole;
+      senderName?: string;
+      content: string;
+    },
+  ) {
+    return this.msgSvc.addMessage({
+      ticketId: id,
+      senderId: body.senderId,
+      senderRole: body.senderRole,
+      senderName: body.senderName,
+      content: body.content,
+    });
+  }
+
+  /** PATCH /tickets/mark-wa/:messageId — mark a ticket message as sent via WhatsApp */
+  @Patch('mark-wa/:messageId')
+  markWhatsAppSent(@Param('messageId') messageId: string) {
+    return this.msgSvc.markWhatsAppSent(messageId);
   }
 }

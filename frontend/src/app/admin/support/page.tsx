@@ -266,7 +266,9 @@ export default function AdminSupportPage() {
             {filtered.map((t) => (
               <div key={t.id} className={styles.ticketCard}>
                 <div className={styles.ticketInfo}>
-                  <div className={styles.ticketSubject}>{t.subject}</div>
+                  <Link href={`/admin/support/ticket/${t.id}`} className={styles.ticketSubjectLink}>
+                    {t.subject}
+                  </Link>
                   <div className={styles.ticketMeta}>
                     <span className={`${styles.badge} ${STATUS_CLASS[t.status] || ""}`}>
                       {t.status.replace(/_/g, " ")}

@@ -75,6 +75,10 @@ export class Ticket {
   @Column({ nullable: true })
   resolvedAt?: Date;
 
+  /** User's WhatsApp phone for ticket reply notifications */
+  @Column({ nullable: true })
+  whatsappPhone?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

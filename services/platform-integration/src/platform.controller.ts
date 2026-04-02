@@ -233,4 +233,23 @@ export class PlatformController {
     if (!log) throw new NotFoundException('Broadcast not found');
     return log;
   }
+
+  /**
+   * POST /platforms/:orgId/whatsapp/send
+   * Send a single WhatsApp text message to a specific phone number.
+   * Used by the support ticket system to notify users via WhatsApp.
+   */
+  @Post(':orgId/whatsapp/send')
+  async sendWhatsAppMessage(
+    @Param('orgId') orgId: string,
+    @Body() body: { phone: string; message: string },
+  ) {
+    const socket = this.sessionService.getSocket(orgId);
+    if (!socket) {
+      throw new NotFoundException('WhatsApp is not connected for this organization.');
+    }
+    const jid = body.phone.replace(/[^\d]/g, '') + '@s.whatsapp.net';
+    const sent = await socket.sendMessage(jid, { text: body.message });
+    return { success: true, messageId: sent?.key?.id };
+  }
 }

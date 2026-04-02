@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { Ticket } from './tickets/ticket.entity.js';
+import { TicketMessage } from './tickets/ticket-message.entity.js';
 import { Conversation } from './chat/conversation.entity.js';
 import { Message } from './chat/message.entity.js';
 import { TicketsModule } from './tickets/tickets.module.js';
@@ -19,7 +20,7 @@ import { AdminModule } from './admin/admin.module.js';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'faithreach_support',
-      entities: [Ticket, Conversation, Message],
+      entities: [Ticket, TicketMessage, Conversation, Message],
       synchronize: false,
       migrationsRun: true,
       migrations: [__dirname + '/migrations/*{.ts,.js}'],

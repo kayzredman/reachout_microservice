@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth, useOrganization, useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import styles from "./support.module.css";
 
 /* ── Types ─────────────────────────────────── */
@@ -232,7 +233,7 @@ export default function SupportPage() {
           ) : (
             <div className={styles.ticketList}>
               {tickets.map((t) => (
-                <div key={t.id} className={styles.ticketCard}>
+                <Link key={t.id} href={`/support/ticket/${t.id}`} className={styles.ticketCard} style={{ textDecoration: "none" }}>
                   <div>
                     <div className={styles.ticketSubject}>{t.subject}</div>
                     <div className={styles.ticketMeta}>
@@ -244,7 +245,7 @@ export default function SupportPage() {
                   >
                     {t.status.replace(/_/g, " ")}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}

@@ -157,6 +157,20 @@
   margin-bottom: 5px;
 }
 
+.ticketSubjectLink {
+  font-weight: 600;
+  color: #181b20;
+  font-size: 0.92rem;
+  margin-bottom: 5px;
+  text-decoration: none;
+  display: block;
+  transition: color 0.15s;
+}
+
+.ticketSubjectLink:hover {
+  color: #7c3aed;
+}
+
 .ticketMeta {
   display: flex;
   align-items: center;
