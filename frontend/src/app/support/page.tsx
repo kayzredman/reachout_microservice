@@ -124,12 +124,12 @@ export default function SupportPage() {
         }),
       });
       const data = await res.json();
-      setConversationId(data.conversationId);
+      if (data.conversationId) setConversationId(data.conversationId);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: data.reply,
+          content: data.reply || data.error || "Something went wrong. Please try again.",
           actions: data.actions,
         },
       ]);

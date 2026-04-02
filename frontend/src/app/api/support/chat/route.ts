@@ -3,12 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND = process.env.SUPPORT_SERVICE_URL || 'http://localhost:3012';
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const res = await fetch(`${BACKEND}/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const body = await req.json();
+    const res = await fetch(`${BACKEND}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json(
+      { error: 'Support service unavailable', reply: 'The support service is currently offline. Please try again shortly.' },
+      { status: 503 },
+    );
+  }
 }
