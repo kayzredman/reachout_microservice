@@ -1,8 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
 
 const BACKEND = process.env.SUPPORT_SERVICE_URL || 'http://localhost:3012';
 
+async function requireSystemAdmin() {
+  const user = await currentUser();
+  if (!user || (user.publicMetadata as Record<string, unknown>)?.systemAdmin !== true) {
+    return false;
+  }
+  return true;
+}
+
 export async function GET() {
+  if (!(await requireSystemAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const [statsRes, ticketsRes] = await Promise.all([
       fetch(`${BACKEND}/admin/support/stats`),
@@ -16,5 +28,39 @@ export async function GET() {
       { stats: { total: 0, open: 0, escalated: 0, resolved: 0, avgResolutionMs: null }, tickets: [] },
       { status: 503 },
     );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  if (!(await requireSystemAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  try {
+    const body = await req.json();
+    const { action, ticketId, assignedTo, summary } = body;
+
+    if (action === 'assign' && ticketId && assignedTo) {
+      const res = await fetch(`${BACKEND}/admin/support/tickets/${encodeURIComponent(ticketId)}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo }),
+      });
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    if (action === 'resolve' && ticketId) {
+      const res = await fetch(`${BACKEND}/admin/support/tickets/${encodeURIComponent(ticketId)}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: summary || '' }),
+      });
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: 'Support service unavailable' }, { status: 503 });
   }
 }

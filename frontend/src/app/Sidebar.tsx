@@ -13,6 +13,7 @@ import {
   HiOutlineClipboardList,
   HiOutlineCog,
   HiOutlineChatAlt2,
+  HiOutlineShieldCheck,
 } from "react-icons/hi";
 
 const navItems = [
@@ -27,6 +28,10 @@ const navItems = [
   { label: "Settings", href: "/settings", icon: <HiOutlineCog /> },
 ];
 
+const adminItems = [
+  { label: "Support Admin", href: "/admin/support", icon: <HiOutlineShieldCheck /> },
+];
+
 export default function Sidebar() {
   const { isSignedIn, user } = useUser();
   const { membership } = useOrganization();
@@ -34,6 +39,7 @@ export default function Sidebar() {
 
   const orgRole = membership?.role;
   const roleLabel = orgRole === "org:admin" ? "Admin" : orgRole === "org:member" ? "Member" : "Content Creator";
+  const isSystemAdmin = (user?.publicMetadata as Record<string, unknown>)?.systemAdmin === true;
 
   // Responsive: show sidebar on desktop, hamburger on mobile
   // Prevent background scroll when drawer is open
@@ -108,6 +114,18 @@ export default function Sidebar() {
                 {item.label}
               </Link>
             ))}
+            {isSystemAdmin && adminItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`sidebar-link${currentPath === item.href ? " sidebar-link-active" : ""}`}
+                onClick={() => setOpen(false)}
+                style={currentPath === item.href ? { background: "#f6f0ff", color: "#7c3aed" } : {}}
+              >
+                <span className="sidebar-icon">{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
           </nav>
           {isSignedIn && user && (
             <div className="sidebar-user" style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 18 }}>
@@ -154,6 +172,12 @@ export default function Sidebar() {
         )}
         <nav className="sidebar-nav">
           {navItems.map((item) => (
+            <Link key={item.label} href={item.href} className="sidebar-link">
+              <span className="sidebar-icon">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+          {isSystemAdmin && adminItems.map((item) => (
             <Link key={item.label} href={item.href} className="sidebar-link">
               <span className="sidebar-icon">{item.icon}</span>
               {item.label}

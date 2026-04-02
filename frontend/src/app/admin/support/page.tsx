@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import styles from "./admin-support.module.css";
 
 interface Stats {
@@ -48,14 +49,26 @@ function formatDuration(ms: number | null): string {
 
 export default function AdminSupportPage() {
   const { getToken } = useAuth();
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const isSystemAdmin = (user?.publicMetadata as Record<string, unknown>)?.systemAdmin === true;
   const [stats, setStats] = useState<Stats | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (isLoaded && !isSystemAdmin) {
+      router.replace("/");
+    }
+  }, [isLoaded, isSystemAdmin, router]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/support/admin");
+      const token = await getToken();
+      const res = await fetch("/api/support/admin", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) return;
       const data = await res.json();
       setStats(data.stats);
@@ -65,20 +78,36 @@ export default function AdminSupportPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getToken]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isSystemAdmin) fetchData();
+  }, [isSystemAdmin, fetchData]);
+
+  if (!isLoaded || !isSystemAdmin) return <div className={styles.empty}>Checking access...</div>;
 
   const handleAssign = async (ticketId: string) => {
-    const assignee = prompt("Enter admin user ID to assign:");
+    const assignee = prompt("Enter admin name or ID to assign:");
     if (!assignee) return;
-    await fetch(`/api/support/admin`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "assign", ticketId, assignedTo: assignee }),
-    });
+    try {
+      await fetch(`/api/support/admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "assign", ticketId, assignedTo: assignee }),
+      });
+    } catch { /* ignore */ }
+    fetchData();
+  };
+
+  const handleResolve = async (ticketId: string) => {
+    if (!confirm("Mark this ticket as resolved?")) return;
+    try {
+      await fetch(`/api/support/admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resolve", ticketId }),
+      });
+    } catch { /* ignore */ }
     fetchData();
   };
 
@@ -154,19 +183,27 @@ export default function AdminSupportPage() {
                 <td style={{ fontSize: "0.82rem", color: "#71717a" }}>
                   {new Date(t.createdAt).toLocaleDateString()}
                 </td>
-                <td>
-                  {!t.assignedTo && (
+                <td style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                  {!t.assignedTo ? (
                     <button
                       className={styles.assignBtn}
                       onClick={() => handleAssign(t.id)}
                     >
                       Assign
                     </button>
-                  )}
-                  {t.assignedTo && (
+                  ) : (
                     <span style={{ fontSize: "0.82rem", color: "#166534" }}>
-                      Assigned
+                      {t.assignedTo}
                     </span>
+                  )}
+                  {t.status !== "resolved" && t.status !== "closed" && (
+                    <button
+                      className={styles.assignBtn}
+                      style={{ background: "#059669", color: "#fff" }}
+                      onClick={() => handleResolve(t.id)}
+                    >
+                      Resolve
+                    </button>
                   )}
                 </td>
               </tr>
