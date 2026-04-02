@@ -5,6 +5,12 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  HiOutlineOfficeBuilding,
+  HiOutlineUsers,
+  HiOutlineSearch,
+  HiOutlineChevronRight,
+} from "react-icons/hi";
 import styles from "./admin-orgs.module.css";
 
 interface Org {
@@ -63,42 +69,82 @@ export default function AdminOrganizationsPage() {
       (o.slug && o.slug.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const totalMembers = orgs.reduce((s, o) => s + o.membersCount, 0);
+
   return (
     <div className={styles.dashboard}>
-      <div className={styles.header}>
-        <h1>Organizations</h1>
-        <p>View and manage all organization workspaces.</p>
+      {/* Page header */}
+      <div className={styles.pageHeader}>
+        <div className={styles.pageHeaderContent}>
+          <div className={styles.pageHeaderIcon}>
+            <HiOutlineOfficeBuilding />
+          </div>
+          <div>
+            <h1 className={styles.pageTitle}>Organizations</h1>
+            <p className={styles.pageSubtitle}>
+              Manage all {orgs.length > 0 ? `${orgs.length} ` : ""}organization workspaces
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Stats */}
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>{orgs.length}</div>
-          <div className={styles.statLabel}>Total Orgs</div>
+          <div className={styles.statIcon} style={{ background: "#f3f0ff", color: "#7c3aed" }}>
+            <HiOutlineOfficeBuilding />
+          </div>
+          <div>
+            <div className={styles.statValue}>{orgs.length}</div>
+            <div className={styles.statLabel}>Organizations</div>
+          </div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>
-            {orgs.reduce((s, o) => s + o.membersCount, 0)}
+          <div className={styles.statIcon} style={{ background: "#dbeafe", color: "#2563eb" }}>
+            <HiOutlineUsers />
           </div>
-          <div className={styles.statLabel}>Total Members</div>
+          <div>
+            <div className={styles.statValue}>{totalMembers}</div>
+            <div className={styles.statLabel}>Total Members</div>
+          </div>
         </div>
       </div>
 
       {/* Search */}
       <div className={styles.searchBar}>
+        <HiOutlineSearch className={styles.searchIcon} />
         <input
           type="text"
-          placeholder="Search organizations..."
+          placeholder="Search by name or slug..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className={styles.searchInput}
         />
+        {search && (
+          <span className={styles.searchCount}>
+            {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
       {loading ? (
-        <div className={styles.empty}>Loading organizations...</div>
+        <div className={styles.loadingGrid}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className={styles.skeletonCard}>
+              <div className={styles.skeletonAvatar} />
+              <div className={styles.skeletonLines}>
+                <div className={styles.skeletonLine} style={{ width: "60%" }} />
+                <div className={styles.skeletonLine} style={{ width: "40%" }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
-        <div className={styles.empty}>No organizations found.</div>
+        <div className={styles.emptyState}>
+          <HiOutlineOfficeBuilding className={styles.emptyIcon} />
+          <p>No organizations found</p>
+          {search && <span>Try a different search term</span>}
+        </div>
       ) : (
         <div className={styles.orgGrid}>
           {filtered.map((org) => (
@@ -107,13 +153,13 @@ export default function AdminOrganizationsPage() {
               href={`/admin/organizations/${org.id}`}
               className={styles.orgCard}
             >
-              <div className={styles.orgCardHeader}>
+              <div className={styles.orgCardTop}>
                 {org.imageUrl ? (
                   <Image
                     src={org.imageUrl}
                     alt={org.name}
-                    width={48}
-                    height={48}
+                    width={44}
+                    height={44}
                     className={styles.orgAvatar}
                   />
                 ) : (
@@ -121,16 +167,26 @@ export default function AdminOrganizationsPage() {
                     {org.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <div className={styles.orgName}>{org.name}</div>
-                  {org.slug && (
-                    <div className={styles.orgSlug}>/{org.slug}</div>
-                  )}
-                </div>
+                <HiOutlineChevronRight className={styles.orgArrow} />
               </div>
-              <div className={styles.orgMeta}>
-                <span>{org.membersCount} member{org.membersCount !== 1 ? "s" : ""}</span>
-                <span>Created {new Date(org.createdAt).toLocaleDateString()}</span>
+              <div className={styles.orgCardBody}>
+                <div className={styles.orgName}>{org.name}</div>
+                {org.slug && (
+                  <div className={styles.orgSlug}>/{org.slug}</div>
+                )}
+              </div>
+              <div className={styles.orgCardFooter}>
+                <span className={styles.orgFooterItem}>
+                  <HiOutlineUsers style={{ fontSize: "0.85rem" }} />
+                  {org.membersCount} member{org.membersCount !== 1 ? "s" : ""}
+                </span>
+                <span className={styles.orgFooterItem}>
+                  {new Date(org.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
               </div>
             </Link>
           ))}
