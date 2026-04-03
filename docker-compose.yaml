@@ -115,6 +115,12 @@ services:
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       REDIS_HOST: redis
       FRONTEND_URL: http://localhost:3000
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM:-noreply@faithreach.io}
 
   analytics:
     build: ./services/analytics
@@ -269,6 +275,7 @@ services:
       PLATFORM_SERVICE_URL: http://platform-integration:3009
       SCHEDULER_SERVICE_URL: http://scheduler:3010
       PAYMENT_SERVICE_URL: http://payment:3011
+      NOTIFICATION_SERVICE_URL: http://notification:3004
       FRONTEND_URL: http://localhost:3000
 
   # ── Frontend ─────────────────────────────────────────

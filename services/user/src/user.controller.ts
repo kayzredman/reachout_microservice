@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, Req, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Req, Param, NotFoundException, UseGuards } from '@nestjs/common';
 import { ClerkAuthGuard } from './clerk-auth.guard';
 import { UserService } from './user.service';
 import { User } from './user.entity';
@@ -6,6 +6,17 @@ import { User } from './user.entity';
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  /**
+   * GET /user/internal/:id — internal service-to-service lookup (no auth).
+   * Returns basic user info including email for notifications.
+   */
+  @Get('internal/:id')
+  async getInternal(@Param('id') id: string): Promise<User> {
+    const user = await this.userService.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
 
   @UseGuards(ClerkAuthGuard)
   @Get('me')

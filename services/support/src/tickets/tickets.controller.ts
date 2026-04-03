@@ -14,6 +14,7 @@ import { TicketMessagesService } from './ticket-messages.service.js';
 import { TicketCategory, TicketPriority } from './ticket.entity.js';
 import { SenderRole } from './ticket-message.entity.js';
 import { TicketGateway } from './ticket.gateway.js';
+import { TicketNotifier } from './ticket-notifier.service.js';
 
 @Controller('tickets')
 export class TicketsController {
@@ -23,6 +24,7 @@ export class TicketsController {
     private readonly svc: TicketsService,
     private readonly msgSvc: TicketMessagesService,
     private readonly gateway: TicketGateway,
+    private readonly notifier: TicketNotifier,
   ) {}
 
   /** POST /tickets — create a new support ticket */
@@ -79,6 +81,12 @@ export class TicketsController {
   ) {
     const ticket = await this.svc.resolve(id, body.aiSummary);
     if (!ticket) throw new NotFoundException('Ticket not found');
+
+    // Fire-and-forget: send resolved email notification to user
+    this.notifier.onTicketResolved(ticket, body.aiSummary).catch((err) =>
+      this.logger.warn(`Resolve notification failed: ${err.message}`),
+    );
+
     return ticket;
   }
 

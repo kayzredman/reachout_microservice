@@ -12,6 +12,11 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
+  /** Internal lookup by Clerk user ID */
+  async findById(clerkId: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id: clerkId } });
+  }
+
   async getOrCreateByClerk(clerkId: string, clerkPayload: any): Promise<User> {
     let user = await this.userRepository.findOne({ where: { id: clerkId } });
     if (!user) {

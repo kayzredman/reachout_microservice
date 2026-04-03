@@ -7,6 +7,8 @@ import { AppService } from './app.service';
 import { NotificationPrefs } from './notification-prefs.entity';
 import { NotificationPrefsModule } from './notification-prefs.module';
 import { NotifyProcessor } from './queues/notify.processor';
+import { EmailService } from './email.service';
+import { SendNotificationController } from './send-notification.controller';
 
 @Module({
   imports: [
@@ -32,7 +34,7 @@ import { NotifyProcessor } from './queues/notify.processor';
     }),
     NotificationPrefsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService, NotifyProcessor],
+  controllers: [AppController, SendNotificationController],
+  providers: [AppService, NotifyProcessor, EmailService],
 })
 export class AppModule {}
