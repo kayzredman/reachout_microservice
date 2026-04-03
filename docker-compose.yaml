@@ -57,6 +57,8 @@ services:
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET}
       USER_SERVICE_URL: http://user:3002
+      BILLING_SERVICE_URL: http://billing:3008
+      NOTIFICATION_SERVICE_URL: http://notification:3004
       REDIS_HOST: redis
       FRONTEND_URL: http://localhost:3000
 
@@ -311,6 +313,7 @@ services:
       DB_SSL: ${DB_SSL:-false}
       DB_NAME: ${DB_NAME:-faithreach_payment}
       BILLING_SERVICE_URL: http://billing:3008
+      NOTIFICATION_SERVICE_URL: http://notification:3004
       PAYMENT_PROVIDER: flutterwave
       FLW_PUBLIC_KEY: ${FLW_PUBLIC_KEY}
       FLW_SECRET_KEY: ${FLW_SECRET_KEY}

@@ -35,6 +35,7 @@ export class PaymentService implements OnModuleInit {
   private providers = new Map<string, PaymentProvider>();
   private defaultProvider: string;
   private billingUrl: string;
+  private notificationUrl: string;
 
   constructor(
     private config: ConfigService,
@@ -45,6 +46,8 @@ export class PaymentService implements OnModuleInit {
       this.config.get<string>('PAYMENT_PROVIDER') || 'flutterwave';
     this.billingUrl =
       this.config.get<string>('BILLING_SERVICE_URL') || 'http://localhost:3008';
+    this.notificationUrl =
+      this.config.get<string>('NOTIFICATION_SERVICE_URL') || 'http://localhost:3004';
   }
 
   onModuleInit() {
@@ -176,11 +179,64 @@ export class PaymentService implements OnModuleInit {
     // Call billing service to upgrade the subscription
     await this.upgradeBillingTier(payment.orgId, payment.tier);
 
+    // Notify the organization about the successful upgrade
+    await this.sendPaymentNotification(
+      payment.orgId,
+      'Plan Upgraded Successfully',
+      `Your organization has been upgraded to the ${payment.tier.replace('_', ' ')} plan.`,
+    );
+
     this.logger.log(
       `Payment successful: org=${payment.orgId} tier=${payment.tier} via ${providerName}`,
     );
 
     return { success: true, tier: payment.tier, orgId: payment.orgId };
+  }
+
+  /** Handle a failed payment — mark as failed and notify */
+  async handlePaymentFailure(providerName: string, transactionId: string, txRef?: string) {
+    let payment: Payment | null = null;
+
+    if (txRef) {
+      payment = await this.paymentRepo.findOne({ where: { txRef } });
+    }
+
+    if (!payment) {
+      // Try to look up via provider verification
+      try {
+        const provider = this.getProvider(providerName);
+        const verification = await provider.verifyPayment(transactionId);
+        if (verification.txRef) {
+          payment = await this.paymentRepo.findOne({ where: { txRef: verification.txRef } });
+        }
+      } catch {
+        this.logger.warn(`Could not verify failed tx ${transactionId}`);
+      }
+    }
+
+    if (!payment) {
+      this.logger.warn(`No payment record found for failed tx ${transactionId}`);
+      return { received: true, message: 'No matching payment record' };
+    }
+
+    // Don't overwrite a successful payment
+    if (payment.status === 'successful') {
+      return { received: true, message: 'Payment already successful' };
+    }
+
+    payment.status = 'failed';
+    payment.providerRef = transactionId;
+    payment.meta = { ...payment.meta, failedAt: new Date().toISOString() };
+    await this.paymentRepo.save(payment);
+
+    await this.sendPaymentNotification(
+      payment.orgId,
+      'Payment Failed',
+      `Your payment for the ${payment.tier.replace('_', ' ')} plan was not completed. Please try again from billing settings.`,
+    );
+
+    this.logger.log(`Payment failed: org=${payment.orgId} tx=${transactionId}`);
+    return { received: true, status: 'failed' };
   }
 
   /** Call billing service over HTTP to upgrade an org's tier */
@@ -207,6 +263,25 @@ export class PaymentService implements OnModuleInit {
       this.logger.error(
         `Failed to call billing service for org=${orgId}: ${err}`,
       );
+    }
+  }
+
+  /** Send an in-app notification via the notification service */
+  private async sendPaymentNotification(orgId: string, title: string, body: string) {
+    try {
+      await fetch(`${this.notificationUrl}/notifications/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'in-app',
+          userId: 'system',
+          orgId,
+          subject: title,
+          body,
+        }),
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to send payment notification: ${err}`);
     }
   }
 

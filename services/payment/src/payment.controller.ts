@@ -76,13 +76,24 @@ export class PaymentController {
       throw new HttpException('Invalid signature', HttpStatus.UNAUTHORIZED);
     }
 
-    // Only process successful charge events
-    if (body.event === 'charge.completed' && body.data?.id) {
-      const result = await this.paymentService.handlePaymentSuccess(
-        'flutterwave',
-        String(body.data.id),
-      );
-      return result;
+    // Process charge events
+    if (body.data?.id) {
+      if (body.event === 'charge.completed') {
+        const result = await this.paymentService.handlePaymentSuccess(
+          'flutterwave',
+          String(body.data.id),
+        );
+        return result;
+      }
+
+      if (body.event === 'charge.failed') {
+        const result = await this.paymentService.handlePaymentFailure(
+          'flutterwave',
+          String(body.data.id),
+          body.data.tx_ref,
+        );
+        return result;
+      }
     }
 
     return { received: true };

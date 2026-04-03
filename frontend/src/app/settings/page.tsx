@@ -128,6 +128,7 @@ function SettingsContent() {
   const [currentTier, setCurrentTier] = useState<SubscriptionTier>("starter");
   const [billingLoading, setBillingLoading] = useState(false);
   const [tierSwitching, setTierSwitching] = useState<string | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<{ id: string; tier: string; amount: number; currency: string; status: string; paymentMethod: string | null; createdAt: string }[]>([]);
 
   // Profile form state
   const [profile, setProfile] = useState({
@@ -238,11 +239,16 @@ function SettingsContent() {
   useEffect(() => {
     if (tab !== "Billing" || !organization) return;
     setBillingLoading(true);
-    fetch(`/api/billing/${organization.id}`)
-      .then((r) => (r.ok ? r.json() : { tier: "starter" }))
-      .then((d) => setCurrentTier(d.tier || "starter"))
-      .catch(() => setCurrentTier("starter"))
-      .finally(() => setBillingLoading(false));
+    Promise.all([
+      fetch(`/api/billing/${organization.id}`)
+        .then((r) => (r.ok ? r.json() : { tier: "starter" }))
+        .then((d) => setCurrentTier(d.tier || "starter"))
+        .catch(() => setCurrentTier("starter")),
+      fetch(`/api/payment/history/${organization.id}`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d) => setPaymentHistory(Array.isArray(d) ? d : []))
+        .catch(() => setPaymentHistory([])),
+    ]).finally(() => setBillingLoading(false));
   }, [tab, organization]);
 
   // Load notification prefs when Notifications tab active
@@ -1290,6 +1296,57 @@ function SettingsContent() {
                 </span>
               </div>
             </div>
+
+            {/* Payment History */}
+            {paymentHistory.length > 0 && (
+              <div style={{ marginTop: 28 }}>
+                <h4 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: 12, color: "#374151" }}>Payment History</h4>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #e5e7eb", color: "#6b7280", textAlign: "left" }}>
+                        <th style={{ padding: "8px 12px", fontWeight: 500 }}>Date</th>
+                        <th style={{ padding: "8px 12px", fontWeight: 500 }}>Plan</th>
+                        <th style={{ padding: "8px 12px", fontWeight: 500 }}>Amount</th>
+                        <th style={{ padding: "8px 12px", fontWeight: 500 }}>Method</th>
+                        <th style={{ padding: "8px 12px", fontWeight: 500 }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentHistory.map((p) => (
+                        <tr key={p.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                          <td style={{ padding: "8px 12px", color: "#374151" }}>
+                            {new Date(p.createdAt).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: "8px 12px", textTransform: "capitalize", color: "#374151" }}>
+                            {p.tier.replace("_", " ")}
+                          </td>
+                          <td style={{ padding: "8px 12px", color: "#374151" }}>
+                            {p.currency} {Number(p.amount).toFixed(2)}
+                          </td>
+                          <td style={{ padding: "8px 12px", color: "#6b7280", textTransform: "capitalize" }}>
+                            {p.paymentMethod?.replace("_", " ") || "Card"}
+                          </td>
+                          <td style={{ padding: "8px 12px" }}>
+                            <span style={{
+                              display: "inline-block",
+                              padding: "2px 8px",
+                              borderRadius: 9999,
+                              fontSize: "0.75rem",
+                              fontWeight: 500,
+                              background: p.status === "successful" ? "#d1fae5" : p.status === "failed" ? "#fee2e2" : "#fef3c7",
+                              color: p.status === "successful" ? "#065f46" : p.status === "failed" ? "#991b1b" : "#92400e",
+                            }}>
+                              {p.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
