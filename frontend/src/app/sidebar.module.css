@@ -1,0 +1,204 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 240px;
+  background: #1a1a2e;
+  border-right: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 100;
+  padding: 32px 0 16px 0;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 0 32px 16px 32px;
+}
+
+.logoFaith {
+  color: #fff;
+}
+
+.logoReach {
+  color: #a78bfa;
+}
+
+.orgSwitcher {
+  padding: 0 16px 16px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  color: #a0a0b8;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.08rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.link:hover {
+  background: rgba(124, 58, 237, 0.15);
+  color: #fff;
+  border-left: 3px solid #7c3aed;
+}
+
+.linkActive {
+  background: rgba(124, 58, 237, 0.15);
+  color: #fff;
+  border-left: 3px solid #7c3aed;
+}
+
+.icon {
+  font-size: 1.2em;
+  color: #7a7a96;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 0 24px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #2e2e48;
+}
+
+.username {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #e0e0e8;
+}
+
+.role {
+  font-size: 0.92rem;
+  color: #7a7a96;
+}
+
+/* Mobile bar */
+.mobileBar {
+  display: none;
+}
+
+.drawer {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+
+  .mobileBar {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    background: #1a1a2e;
+    border-bottom: 1px solid #2e2e48;
+    padding: 0 16px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+
+  .mobileLogo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-left: 12px;
+  }
+
+  .mobileLogoFaith {
+    color: #fff;
+  }
+
+  .mobileLogoReach {
+    color: #a78bfa;
+  }
+
+  .hamburger {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #a78bfa;
+  }
+
+  .drawer {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.12);
+    z-index: 300;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .drawerOpen {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .drawerContent {
+    background: #1a1a2e;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 24px;
+  }
+
+  .drawerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1a1a2e;
+    padding: 24px 24px 0 24px;
+  }
+
+  .closeBtn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #a78bfa;
+  }
+
+  .linkActive {
+    background: rgba(124, 58, 237, 0.15) !important;
+    color: #fff !important;
+  }
+
+  .drawer .nav {
+    margin-top: 24px;
+    padding: 0 24px;
+  }
+
+  .drawer .user {
+    margin-top: 32px;
+    padding: 0 24px;
+  }
+}

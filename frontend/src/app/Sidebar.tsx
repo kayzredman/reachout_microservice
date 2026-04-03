@@ -18,6 +18,7 @@ import {
   HiOutlineViewGridAdd,
 } from "react-icons/hi";
 import NotificationBell from "./components/NotificationBell";
+import s from "./sidebar.module.css";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: <HiOutlineViewGrid /> },
@@ -37,6 +38,30 @@ const adminItems = [
   { label: "Support Admin", href: "/admin/support", icon: <HiOutlineShieldCheck /> },
 ];
 
+const orgSwitcherDark = {
+  elements: {
+    rootBox: { width: "100%" },
+    organizationSwitcherTrigger: {
+      width: "100%",
+      padding: "8px 12px",
+      borderRadius: "10px",
+      border: "1.5px solid #2e2e48",
+      background: "#23233a",
+      color: "#d0d0e0",
+      justifyContent: "space-between",
+    },
+  },
+};
+
+function Logo() {
+  return (
+    <span className={s.logo}>
+      <span className={s.logoFaith}>Faith</span>
+      <span className={s.logoReach}>Reach</span>
+    </span>
+  );
+}
+
 export default function Sidebar() {
   const { isSignedIn, user } = useUser();
   const { membership } = useOrganization();
@@ -46,335 +71,109 @@ export default function Sidebar() {
   const roleLabel = orgRole === "org:admin" ? "Admin" : orgRole === "org:member" ? "Member" : "Content Creator";
   const isSystemAdmin = (user?.publicMetadata as Record<string, unknown>)?.systemAdmin === true;
 
-  // Responsive: show sidebar on desktop, hamburger on mobile
-  // Prevent background scroll when drawer is open
   if (typeof window !== "undefined") {
     document.body.style.overflow = open ? "hidden" : "";
   }
 
-  // Get current path for active link
   let currentPath = "";
   if (typeof window !== "undefined") {
     currentPath = window.location.pathname;
   }
 
+  const renderLinks = (items: typeof navItems, onClickExtra?: () => void) =>
+    items.map((item) => (
+      <Link
+        key={item.label}
+        href={item.href}
+        className={`${s.link} ${currentPath === item.href ? s.linkActive : ""}`}
+        onClick={onClickExtra}
+      >
+        <span className={s.icon}>{item.icon}</span>
+        {item.label}
+      </Link>
+    ));
+
   return (
     <>
-      {/* Mobile Hamburger */}
-      <div className="sidebar-mobile-bar">
-        <button
-          className="sidebar-hamburger"
-          aria-label="Open menu"
-          onClick={() => setOpen(true)}
-        >
-          <span className="sidebar-hamburger-icon">&#9776;</span>
+      {/* Mobile top bar */}
+      <div className={s.mobileBar}>
+        <button className={s.hamburger} aria-label="Open menu" onClick={() => setOpen(true)}>
+          &#9776;
         </button>
-        <span className="sidebar-mobile-logo">FaithReach</span>
+        <span className={s.mobileLogo}>
+          <span className={s.mobileLogoFaith}>Faith</span>
+          <span className={s.mobileLogoReach}>Reach</span>
+        </span>
       </div>
-      {/* Sidebar Drawer (mobile) */}
-      <div className={`sidebar-drawer${open ? " sidebar-drawer-open" : ""}`}> 
-        <div className="sidebar-drawer-content">
-          <div className="sidebar-drawer-header">
-            <span className="sidebar-logo">FaithReach</span>
-            <button
-              className="sidebar-close"
-              aria-label="Close menu"
-              onClick={() => setOpen(false)}
-            >
+
+      {/* Mobile drawer */}
+      <div className={`${s.drawer} ${open ? s.drawerOpen : ""}`}>
+        <div className={s.drawerContent}>
+          <div className={s.drawerHeader}>
+            <Logo />
+            <button className={s.closeBtn} aria-label="Close menu" onClick={() => setOpen(false)}>
               &times;
             </button>
           </div>
           {isSignedIn && (
-            <div className="sidebar-org-switcher">
+            <div className={s.orgSwitcher}>
               <OrganizationSwitcher
-                appearance={{
-                  elements: {
-                    rootBox: { width: "100%" },
-                    organizationSwitcherTrigger: {
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "10px",
-                      border: "1.5px solid #e2e8f0",
-                      background: "#f8f9fb",
-                      justifyContent: "space-between",
-                    },
-                  },
-                }}
+                appearance={orgSwitcherDark}
                 afterCreateOrganizationUrl="/dashboard"
                 afterLeaveOrganizationUrl="/dashboard"
                 afterSelectOrganizationUrl="/dashboard"
               />
             </div>
           )}
-          <nav className="sidebar-nav" style={{ flex: 1 }}>
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`sidebar-link${currentPath === item.href ? " sidebar-link-active" : ""}`}
-                onClick={() => setOpen(false)}
-                style={currentPath === item.href ? { background: "rgba(124,58,237,0.15)", color: "#fff" } : {}}
-              >
-                <span className="sidebar-icon">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-            {isSystemAdmin && adminItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`sidebar-link${currentPath === item.href ? " sidebar-link-active" : ""}`}
-                onClick={() => setOpen(false)}
-                style={currentPath === item.href ? { background: "rgba(124,58,237,0.15)", color: "#fff" } : {}}
-              >
-                <span className="sidebar-icon">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
+          <nav className={s.nav} style={{ flex: 1 }}>
+            {renderLinks(navItems, () => setOpen(false))}
+            {isSystemAdmin && renderLinks(adminItems, () => setOpen(false))}
           </nav>
           <div style={{ padding: "0 16px" }}>
             <NotificationBell />
           </div>
           {isSignedIn && user && (
-            <div className="sidebar-user" style={{ marginTop: "auto", borderTop: "1px solid #2e2e48", paddingTop: 18 }}>
-              <Image
-                src={user.imageUrl}
-                alt="User avatar"
-                className="sidebar-avatar"
-                width={40}
-                height={40}
-                style={{ borderRadius: '50%' }}
-              />
+            <div className={s.user} style={{ marginTop: "auto", borderTop: "1px solid #2e2e48", paddingTop: 18 }}>
+              <Image src={user.imageUrl} alt="User avatar" className={s.avatar} width={40} height={40} style={{ borderRadius: "50%" }} />
               <div>
-                <div className="sidebar-username">{user.fullName || user.username}</div>
-                <div className="sidebar-role">{roleLabel}</div>
+                <div className={s.username}>{user.fullName || user.username}</div>
+                <div className={s.role}>{roleLabel}</div>
               </div>
             </div>
           )}
         </div>
       </div>
-      {/* Sidebar (desktop) */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">FaithReach</div>
+
+      {/* Desktop sidebar */}
+      <aside className={s.sidebar}>
+        <Logo />
         {isSignedIn && (
-          <div className="sidebar-org-switcher">
+          <div className={s.orgSwitcher}>
             <OrganizationSwitcher
-              appearance={{
-                elements: {
-                  rootBox: { width: "100%" },
-                  organizationSwitcherTrigger: {
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "10px",
-                    border: "1.5px solid #2e2e48",
-                    background: "#23233a",
-                    color: "#d0d0e0",
-                    justifyContent: "space-between",
-                  },
-                },
-              }}
+              appearance={orgSwitcherDark}
               afterCreateOrganizationUrl="/dashboard"
               afterLeaveOrganizationUrl="/dashboard"
               afterSelectOrganizationUrl="/dashboard"
             />
           </div>
         )}
-        <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <Link key={item.label} href={item.href} className="sidebar-link">
-              <span className="sidebar-icon">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-          {isSystemAdmin && adminItems.map((item) => (
-            <Link key={item.label} href={item.href} className="sidebar-link">
-              <span className="sidebar-icon">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+        <nav className={s.nav}>
+          {renderLinks(navItems)}
+          {isSystemAdmin && renderLinks(adminItems)}
         </nav>
         <div style={{ padding: "0 16px" }}>
           <NotificationBell />
         </div>
         {isSignedIn && user && (
-          <div className="sidebar-user">
-            <Image
-              src={user.imageUrl}
-              alt="User avatar"
-              className="sidebar-avatar"
-              width={40}
-              height={40}
-              style={{ borderRadius: '50%' }}
-            />
+          <div className={s.user}>
+            <Image src={user.imageUrl} alt="User avatar" className={s.avatar} width={40} height={40} style={{ borderRadius: "50%" }} />
             <div>
-              <div className="sidebar-username">{user.fullName || user.username}</div>
-              <div className="sidebar-role">{roleLabel}</div>
+              <div className={s.username}>{user.fullName || user.username}</div>
+              <div className={s.role}>{roleLabel}</div>
             </div>
           </div>
         )}
       </aside>
-      <style jsx global>{`
-        .sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          height: 100vh;
-          width: 240px;
-          background: #1a1a2e;
-          border-right: none;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          z-index: 100;
-          padding: 32px 0 16px 0;
-        }
-        .sidebar-logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #fff;
-          padding: 0 32px 16px 32px;
-        }
-        .sidebar-org-switcher {
-          padding: 0 16px 16px;
-        }
-        .sidebar-nav {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 0 16px;
-        }
-        .sidebar-link {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          border-radius: 10px;
-          color: #a0a0b8;
-          text-decoration: none;
-          font-weight: 500;
-          font-size: 1.08rem;
-          transition: background 0.15s, color 0.15s;
-        }
-        .sidebar-link:hover, .sidebar-link.active {
-          background: rgba(124, 58, 237, 0.15);
-          color: #fff;
-          border-left: 3px solid #7c3aed;
-        }
-        .sidebar-icon {
-          font-size: 1.2em;
-          color: #7a7a96;
-        }
-        .sidebar-user {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px 24px 0 24px;
-        }
-        .sidebar-avatar {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #2e2e48;
-        }
-        .sidebar-username {
-          font-weight: 600;
-          font-size: 1rem;
-          color: #e0e0e8;
-        }
-        .sidebar-role {
-          font-size: 0.92rem;
-          color: #7a7a96;
-        }
-        /* Mobile styles */
-        .sidebar-mobile-bar {
-          display: none;
-        }
-        .sidebar-drawer {
-          display: none;
-        }
-        @media (max-width: 900px) {
-          .sidebar {
-            display: none;
-          }
-          .sidebar-mobile-bar {
-            display: flex;
-            align-items: center;
-            height: 56px;
-            background: #1a1a2e;
-            border-bottom: 1px solid #2e2e48;
-            padding: 0 16px;
-            position: sticky;
-            top: 0;
-            z-index: 200;
-          }
-          .sidebar-mobile-logo {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #fff;
-            margin-left: 12px;
-          }
-          .sidebar-hamburger {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: #a78bfa;
-          }
-          .sidebar-drawer {
-            display: block;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.12);
-            z-index: 300;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-          }
-          .sidebar-drawer-open {
-            pointer-events: auto;
-            opacity: 1;
-          }
-          .sidebar-drawer-content {
-            background: #1a1a2e;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 24px;
-          }
-          .sidebar-drawer-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #1a1a2e;
-            padding: 24px 24px 0 24px;
-          }
-                  .sidebar-link-active {
-                    background: rgba(124,58,237,0.15) !important;
-                    color: #fff !important;
-                  }
-          .sidebar-close {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: #a78bfa;
-          }
-          .sidebar-drawer .sidebar-nav {
-            margin-top: 24px;
-            padding: 0 24px;
-          }
-          .sidebar-drawer .sidebar-user {
-            margin-top: 32px;
-            padding: 0 24px;
-          }
-        }
-      `}</style>
     </>
   );
 }
