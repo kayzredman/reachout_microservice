@@ -11,7 +11,7 @@ redis-cli ping > /dev/null 2>&1 || redis-server --daemonize yes
 
 echo "Starting services..."
 
-services=(analytics:3005 post:3003 platform-integration:3009 user:3002 billing:3008)
+services=(analytics:3005 post:3003 platform-integration:3009 user:3002 billing:3008 notification:3004 payment:3011 support:3012 ai-assistant:3006)
 
 for entry in "${services[@]}"; do
   svc="${entry%%:*}"

@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class AddNotifications1720000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      CREATE TABLE "notifications" (
+      CREATE TABLE IF NOT EXISTS "notifications" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "userId" character varying NOT NULL,
         "organizationId" character varying NOT NULL,
@@ -15,7 +15,7 @@ export class AddNotifications1720000000000 implements MigrationInterface {
       )
     `);
     await queryRunner.query(`
-      CREATE INDEX "IDX_notifications_user_org_read"
+      CREATE INDEX IF NOT EXISTS "IDX_notifications_user_org_read"
       ON "notifications" ("userId", "organizationId", "read")
     `);
   }
