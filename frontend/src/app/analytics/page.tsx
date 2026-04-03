@@ -13,43 +13,28 @@ interface OrgMetrics {
   totalComments: number;
   totalShares: number;
   totalReach: number;
+  totalEngagement: number;
+  engagementRate: number;
+  platformCount: number;
   byPlatform: Record<
     string,
     { impressions: number; likes: number; comments: number; shares: number; reach: number }
   >;
 }
 
-interface Post {
+interface TopPost {
   id: string;
   content: string;
   platforms: string[];
-  status: string;
   publishedAt?: string;
-  publishResults: { platform: string; status: string; platformPostId?: string }[];
-}
-
-interface PostMetricsSnapshot {
-  id: string;
-  postId: string;
-  platform: string;
-  impressions: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  reach: number;
-  views: number;
-  saves: number;
-  engagementRate: number;
-  deliveryStatus?: string;
-  fetchedAt: string;
-}
-
-interface PostWithMetrics {
-  post: Post;
-  metrics: Record<string, PostMetricsSnapshot>;
   totalEngagement: number;
   totalReach: number;
   totalImpressions: number;
+  engagementRate: number;
+  platformBreakdown: Record<
+    string,
+    { likes: number; comments: number; shares: number; reach: number; impressions: number }
+  >;
 }
 
 interface TrendPoint {
@@ -57,6 +42,12 @@ interface TrendPoint {
   engagement: number;
   reach: number;
   impressions: number;
+}
+
+interface DashboardResponse {
+  overview: OrgMetrics;
+  topPosts: TopPost[];
+  trends: TrendPoint[];
 }
 
 type MetricTab = "engagement" | "reach" | "impressions";
@@ -67,7 +58,7 @@ export default function AnalyticsPage() {
   const { getToken, isSignedIn } = useAuth();
   const { organization } = useOrganization();
   const [metrics, setMetrics] = useState<OrgMetrics | null>(null);
-  const [postsWithMetrics, setPostsWithMetrics] = useState<PostWithMetrics[]>([]);
+  const [topPosts, setTopPosts] = useState<TopPost[]>([]);
   const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,70 +79,14 @@ export default function AnalyticsPage() {
       const headers = { Authorization: `Bearer ${token}` };
       const orgId = organization.id;
 
-      const [metricsRes, postsRes] = await Promise.all([
-        fetch(`/api/metrics/${orgId}`, { headers }),
-        fetch(`/api/posts/${orgId}`, { headers }),
-      ]);
+      const res = await fetch(`/api/analytics/${orgId}/dashboard`, { headers });
+      if (!res.ok) throw new Error("Failed to load analytics");
 
-      const orgMetrics: OrgMetrics | null = metricsRes.ok ? await metricsRes.json() : null;
-      const allPosts: Post[] = postsRes.ok ? await postsRes.json() : [];
+      const dashboard: DashboardResponse = await res.json();
 
-      setMetrics(orgMetrics);
-
-      const published = allPosts.filter(
-        (p) => p.status === "published" || p.status === "partially_failed",
-      );
-
-      const postMetricsResults = await Promise.all(
-        published.slice(0, 20).map(async (post) => {
-          try {
-            const res = await fetch(`/api/metrics/${orgId}/post/${post.id}`, { headers });
-            const data: Record<string, PostMetricsSnapshot> = res.ok ? await res.json() : {};
-            const values = Object.values(data);
-            return {
-              post,
-              metrics: data,
-              totalEngagement: values.reduce((s, m) => s + m.likes + m.comments + m.shares, 0),
-              totalReach: values.reduce((s, m) => s + m.reach, 0),
-              totalImpressions: values.reduce((s, m) => s + m.impressions, 0),
-            };
-          } catch {
-            return { post, metrics: {}, totalEngagement: 0, totalReach: 0, totalImpressions: 0 };
-          }
-        }),
-      );
-
-      postMetricsResults.sort((a, b) => b.totalEngagement - a.totalEngagement);
-      setPostsWithMetrics(postMetricsResults);
-
-      // Fetch history for growth trends
-      const historyResults = await Promise.all(
-        published.slice(0, 15).map(async (post) => {
-          try {
-            const res = await fetch(`/api/metrics/${orgId}/post/${post.id}/history`, { headers });
-            if (!res.ok) return [];
-            const data = await res.json();
-            return Array.isArray(data) ? data : [];
-          } catch {
-            return [];
-          }
-        }),
-      );
-
-      const allSnapshots = historyResults.flat();
-      const byDate: Record<string, { engagement: number; reach: number; impressions: number }> = {};
-      for (const snap of allSnapshots) {
-        const day = new Date(snap.fetchedAt).toISOString().split("T")[0];
-        if (!byDate[day]) byDate[day] = { engagement: 0, reach: 0, impressions: 0 };
-        byDate[day].engagement += (snap.likes || 0) + (snap.comments || 0) + (snap.shares || 0);
-        byDate[day].reach += snap.reach || 0;
-        byDate[day].impressions += snap.impressions || 0;
-      }
-      setTrendData(
-        Object.entries(byDate)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, vals]) => ({ date, ...vals })),
-      );
+      setMetrics(dashboard.overview);
+      setTopPosts(dashboard.topPosts);
+      setTrendData(dashboard.trends);
     } catch {
       setError("Failed to load analytics data. Make sure your services are running.");
     } finally {
@@ -167,13 +102,8 @@ export default function AnalyticsPage() {
 
   if (!isSignedIn) return null;
 
-  const totalEngagement = metrics
-    ? metrics.totalLikes + metrics.totalComments + metrics.totalShares
-    : 0;
-  const engagementRate =
-    metrics && metrics.totalImpressions > 0
-      ? ((totalEngagement / metrics.totalImpressions) * 100).toFixed(2)
-      : "0.00";
+  const totalEngagement = metrics ? metrics.totalEngagement : 0;
+  const engagementRate = metrics ? metrics.engagementRate.toFixed(2) : "0.00";
   const platforms = metrics ? Object.keys(metrics.byPlatform) : [];
   const maxPlatformReach = metrics
     ? Math.max(...Object.values(metrics.byPlatform).map((p) => p.reach), 1)
@@ -188,8 +118,8 @@ export default function AnalyticsPage() {
     ? Math.max(...Object.values(metrics.byPlatform).map((p) => p.impressions), 1)
     : 1;
 
-  const topPosts = postsWithMetrics.slice(0, 10);
-  const maxPostEng = Math.max(...topPosts.map((p) => p.totalEngagement), 1);
+  const rankedPosts = topPosts.slice(0, 10);
+  const maxPostEng = Math.max(...rankedPosts.map((p) => p.totalEngagement), 1);
 
   return (
     <div className={styles.analyticsWrap}>
@@ -363,7 +293,7 @@ export default function AnalyticsPage() {
           <div className={styles.row}>
             <div className={`${styles.card} ${styles.flexCard}`} style={{ flex: 1 }}>
               <h3 className={styles.sectionTitle}>Post Engagement</h3>
-              {topPosts.length === 0 ? (
+              {rankedPosts.length === 0 ? (
                 <div className={styles.emptyInline}>
                   <span className={styles.emptyIcon}>📊</span>
                   <p>No post engagement data yet.</p>
@@ -374,17 +304,17 @@ export default function AnalyticsPage() {
               ) : (
                 <div className={styles.chartWrap}>
                   <div className={styles.engChart} style={{ paddingBottom: 28 }}>
-                    {topPosts.map((pw, i) => {
+                    {rankedPosts.map((pw, i) => {
                       const h = maxPostEng > 0 ? (pw.totalEngagement / maxPostEng) * 150 : 0;
                       return (
                         <div
-                          key={pw.post.id}
+                          key={pw.id}
                           className={styles.engBar}
                           style={{
                             height: Math.max(h, 4),
                             background: CHART_COLORS[i % CHART_COLORS.length],
                           }}
-                          title={pw.post.content.slice(0, 80)}
+                          title={pw.content.slice(0, 80)}
                         >
                           <span className={styles.engBarValue}>{fmt(pw.totalEngagement)}</span>
                           <span className={styles.engBarLabel}>Post {i + 1}</span>
@@ -398,7 +328,7 @@ export default function AnalyticsPage() {
 
             <div className={`${styles.card} ${styles.flexCard}`} style={{ flex: 1 }}>
               <h3 className={styles.sectionTitle}>Recent Post Performance</h3>
-              {postsWithMetrics.length === 0 ? (
+              {topPosts.length === 0 ? (
                 <div className={styles.emptyInline}>
                   <span className={styles.emptyIcon}>🚀</span>
                   <p>No published posts with metrics yet.</p>
@@ -408,18 +338,18 @@ export default function AnalyticsPage() {
                 </div>
               ) : (
                 <div className={styles.recentList}>
-                  {postsWithMetrics.slice(0, 5).map((pw) => (
-                    <div key={pw.post.id} className={styles.itemCard}>
+                  {topPosts.slice(0, 5).map((pw) => (
+                    <div key={pw.id} className={styles.itemCard}>
                       <div className={styles.recentContent}>
-                        {pw.post.content.length > 100
-                          ? pw.post.content.slice(0, 100) + "…"
-                          : pw.post.content}
+                        {pw.content.length > 100
+                          ? pw.content.slice(0, 100) + "…"
+                          : pw.content}
                       </div>
                       <div className={styles.recentMeta}>
                         <span>{fmt(pw.totalEngagement)} engagement</span>
                         <span>{fmt(pw.totalReach)} reach</span>
                         <span>{fmt(pw.totalImpressions)} impressions</span>
-                        {pw.post.platforms.map((p) => (
+                        {pw.platforms.map((p) => (
                           <span key={p} className={styles.platformBadge}>
                             {p}
                           </span>
@@ -433,7 +363,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* ── Top performing posts table ── */}
-          {postsWithMetrics.length > 0 && (
+          {topPosts.length > 0 && (
             <div className={styles.card} style={{ marginBottom: 24 }}>
               <h2 className={styles.sectionTitle}>Top Performing Posts</h2>
               <div style={{ overflowX: "auto" }}>
@@ -450,25 +380,25 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {postsWithMetrics.slice(0, 10).map((pw, i) => {
+                    {topPosts.slice(0, 10).map((pw, i) => {
                       const rate =
                         pw.totalImpressions > 0
                           ? ((pw.totalEngagement / pw.totalImpressions) * 100).toFixed(1)
                           : "—";
                       return (
-                        <tr key={pw.post.id}>
+                        <tr key={pw.id}>
                           <td>
                             <span className={styles.postRank}>{i + 1}</span>
                           </td>
                           <td>
                             <div className={styles.postContent}>
-                              {pw.post.content.length > 80
-                                ? pw.post.content.slice(0, 80) + "…"
-                                : pw.post.content}
+                              {pw.content.length > 80
+                                ? pw.content.slice(0, 80) + "…"
+                                : pw.content}
                             </div>
                           </td>
                           <td>
-                            {pw.post.platforms.map((p) => (
+                            {pw.platforms.map((p) => (
                               <span key={p} className={styles.platformBadge}>
                                 {p}
                               </span>
@@ -515,14 +445,14 @@ export default function AnalyticsPage() {
                 🏆 Best Post
               </div>
               <div className={styles.insightValue}>
-                {postsWithMetrics[0]
-                  ? `${fmt(postsWithMetrics[0].totalEngagement)} engagements`
+                {topPosts[0]
+                  ? `${fmt(topPosts[0].totalEngagement)} engagements`
                   : "—"}
               </div>
               <div className={styles.insightSub}>
-                {postsWithMetrics[0]
-                  ? postsWithMetrics[0].post.content.slice(0, 60) +
-                    (postsWithMetrics[0].post.content.length > 60 ? "…" : "")
+                {topPosts[0]
+                  ? topPosts[0].content.slice(0, 60) +
+                    (topPosts[0].content.length > 60 ? "…" : "")
                   : "Publish posts to see insights"}
               </div>
             </div>

@@ -103,36 +103,16 @@ export default function DashboardPage() {
 
       setData({ metrics, posts, scheduled, series, platforms });
 
-      // Fetch history for growth trends
-      const published = (posts as Post[]).filter(
-        (p: Post) => p.status === "published" || p.status === "partially_failed",
-      );
-      const historyResults = await Promise.all(
-        published.slice(0, 15).map(async (post: Post) => {
-          try {
-            const res = await fetch(`/api/metrics/${orgId}/post/${post.id}/history`, { headers });
-            if (!res.ok) return [];
-            const d = await res.json();
-            return Array.isArray(d) ? d : [];
-          } catch {
-            return [];
-          }
-        }),
-      );
-      const allSnapshots = historyResults.flat();
-      const byDate: Record<string, { engagement: number; reach: number; impressions: number }> = {};
-      for (const snap of allSnapshots) {
-        const day = new Date(snap.fetchedAt).toISOString().split("T")[0];
-        if (!byDate[day]) byDate[day] = { engagement: 0, reach: 0, impressions: 0 };
-        byDate[day].engagement += (snap.likes || 0) + (snap.comments || 0) + (snap.shares || 0);
-        byDate[day].reach += snap.reach || 0;
-        byDate[day].impressions += snap.impressions || 0;
+      // Fetch trend data from analytics dashboard endpoint (single request)
+      try {
+        const analyticsRes = await fetch(`/api/analytics/${orgId}/dashboard`, { headers });
+        if (analyticsRes.ok) {
+          const dashboard = await analyticsRes.json();
+          setTrendData(dashboard.trends || []);
+        }
+      } catch {
+        // Trends are non-critical — silently ignore
       }
-      setTrendData(
-        Object.entries(byDate)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, vals]) => ({ date, ...vals })),
-      );
     } catch {
       setError("Failed to load dashboard data. Make sure your services are running.");
     } finally {

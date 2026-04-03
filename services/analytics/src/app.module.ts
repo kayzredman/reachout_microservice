@@ -22,6 +22,7 @@ import { join } from 'path';
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       entities: [PostEntity, PostMetrics],
       synchronize: false, // read-only: post service owns the schema
+      migrationsTableName: 'typeorm_migrations_analytics',
     }),
     TypeOrmModule.forFeature([PostEntity, PostMetrics]),
   ],
