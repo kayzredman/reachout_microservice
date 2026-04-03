@@ -13,7 +13,7 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 | **Frontend**     | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
 | **Backend**      | NestJS 11, TypeScript (12 microservices)                 |
 | **Auth**         | Clerk (Organizations, RBAC)                              |
-| **Database**     | PostgreSQL 15, TypeORM                                   |
+| **Database**     | Supabase (PostgreSQL 17), TypeORM                        |
 | **WhatsApp**     | Baileys (QR-based multi-device protocol)                 |
 | **AI**           | OpenAI GPT-4o-mini (captions, hashtags, content plans)   |
 | **Payments**     | Flutterwave (Card + Mobile Money), multi-currency        |
@@ -23,6 +23,7 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 | **Monorepo**     | TurboRepo, pnpm workspaces                               |
 | **Styling**      | CSS Modules                                              |
 | **Icons**        | react-icons (Font Awesome 6)                             |
+| **Hosting**      | Supabase (managed PostgreSQL)                            |
 | **Containers**   | Docker, Docker Compose                                   |
 | **Runtime**      | Node.js v24                                              |
 
@@ -48,7 +49,7 @@ faithreach/
 │   └── support/               # Support tickets & live chat (port 3012) [DB]
 ├── shared/                    # @faithreach/shared — common types & utilities
 ├── scripts/
-│   ├── init-databases.sh      # Auto-create all PostgreSQL databases
+│   ├── init-databases.sh      # Auto-create local PostgreSQL databases (Docker only)
 │   ├── dev-up.sh              # Pre-flight checks, ordered startup, health checks
 │   └── seed-demo.mjs          # Seed demo data for development
 ├── docker-compose.yaml        # Full stack orchestration (16 containers)
@@ -61,20 +62,24 @@ faithreach/
 
 ## Service Architecture
 
-| Service              | Port | Database               | Status      |
-| -------------------- | ---- | ---------------------- | ----------- |
-| Frontend             | 3000 | —                      | Implemented |
-| Auth                 | 3001 | —                      | Scaffold    |
-| User                 | 3002 | `faithreach_user`      | Implemented |
-| Post                 | 3003 | `faithreach_post`      | Implemented |
-| Notification         | 3004 | `faithreach_notification` | Implemented |
-| Analytics            | 3005 | —                      | Scaffold    |
-| AI Assistant         | 3006 | —                      | Implemented |
-| Content Planner      | 3007 | —                      | Implemented |
-| Billing              | 3008 | `faithreach_billing`   | Implemented |
-| Platform Integration | 3009 | `faithreach_platform`  | Implemented |
-| Scheduler            | 3010 | —                      | Implemented |
-| Payment              | 3011 | `faithreach_payment`   | Implemented || Support              | 3012 | `faithreach_support`      | Implemented |
+| Service              | Port | Migration Table                    | Status      |
+| -------------------- | ---- | ---------------------------------- | ----------- |
+| Frontend             | 3000 | —                                  | Implemented |
+| Auth                 | 3001 | —                                  | Scaffold    |
+| User                 | 3002 | `typeorm_migrations_user`          | Implemented |
+| Post                 | 3003 | `typeorm_migrations_post`          | Implemented |
+| Notification         | 3004 | `typeorm_migrations_notification`  | Implemented |
+| Analytics            | 3005 | `typeorm_migrations_analytics`     | Implemented |
+| AI Assistant         | 3006 | —                                  | Implemented |
+| Content Planner      | 3007 | —                                  | Implemented |
+| Billing              | 3008 | `typeorm_migrations_billing`       | Implemented |
+| Platform Integration | 3009 | `typeorm_migrations_platform`      | Implemented |
+| Scheduler            | 3010 | —                                  | Implemented |
+| Payment              | 3011 | `typeorm_migrations_payment`       | Implemented |
+| Support              | 3012 | `typeorm_migrations_support`       | Implemented |
+
+All services share a single Supabase PostgreSQL database (`postgres`) using the `public` schema, with per-service migration tables to avoid name collisions.
+
 All services use `process.env.PORT` with sensible defaults and `process.env.FRONTEND_URL` for CORS.
 
 ---
@@ -224,7 +229,7 @@ Full OAuth connection management and content publishing to all platforms:
 - `PlatformController` — REST endpoints for all platform operations
 - `ClerkAuthGuard` — JWT verification guard using Clerk SDK
 
-**Database:** `faithreach_platform` (PostgreSQL)
+**Database:** `platform_connection`, `broadcast_log`, `broadcast_recipient` tables (PostgreSQL via Supabase)
 
 #### Post Service (Port 3003)
 
@@ -247,7 +252,7 @@ Full post lifecycle management and multi-platform publish orchestration:
 - `PostService` — CRUD, publish orchestration, scheduling
 - `MetricsService` — Metrics aggregation and history
 
-**Database:** `faithreach_post` (PostgreSQL)
+**Database:** `post_entity`, `series_entity`, `post_metrics` tables (PostgreSQL via Supabase)
 
 #### User Service (Port 3002)
 
@@ -517,30 +522,27 @@ POST_SERVICE_URL=http://localhost:3003
 **Billing** (`services/billing/.env`):
 
 ```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/faithreach_billing
+# Uses shared DB_* environment variables from root .env
+# DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_NAME
 ```
 
 **Notification** (`services/notification/.env`):
 
 ```env
 CLERK_SECRET_KEY=sk_test_...
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/faithreach_notification
+# Uses shared DB_* environment variables from root .env
 ```
 
 **Payment** (`services/payment/.env`):
 
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_NAME=faithreach_payment
 PORT=3011
 BILLING_SERVICE_URL=http://localhost:3008
 PAYMENT_PROVIDER=flutterwave
 FLW_PUBLIC_KEY=FLWPUBK_TEST-...
 FLW_SECRET_KEY=FLWSECK_TEST-...
 FLW_WEBHOOK_HASH=your_webhook_hash
+# Uses shared DB_* environment variables from root .env
 ```
 
 **Frontend** — also needs:
@@ -577,7 +579,7 @@ The project includes a complete Docker Compose setup for local development and d
 
 **What's included:**
 
-- **PostgreSQL 15** with healthchecks and auto-database creation (7 databases via `init-databases.sh`)
+- **PostgreSQL 15** (local Docker) with healthchecks and auto-database creation via `init-databases.sh`
 - **Redis 7** for Bull queues (scheduler, notifications)
 - **Adminer** on port 8080 for visual database management
 - **All 12 NestJS services** with multi-stage builds (`node:20-alpine`)
@@ -602,20 +604,30 @@ docker compose logs -f post
 
 ---
 
-## Databases
+## Database
 
-| Database                  | Service              | Tables                                    |
-| ------------------------- | -------------------- | ----------------------------------------- |
-| `faithreach_user`         | User (3002)          | user profiles                             |
-| `faithreach_post`         | Post (3003)          | posts, series, post_metrics               |
-| `faithreach_platform`     | Platform Int. (3009) | connections, broadcast_logs, recipients    |
-| `faithreach_billing`      | Billing (3008)       | subscriptions                             |
-| `faithreach_notification` | Notification (3004)  | notification_preferences                  |
-| `faithreach_payment`      | Payment (3011)       | payments                                  |
-| `faithreach_support`      | Support (3012)       | tickets, ticket_messages                  |
-| `faithreach_planner`      | Content Planner (3007)| content_plans                            |
+All services connect to a single **Supabase** PostgreSQL 17 database (`postgres`), using the `public` schema. Each service has its own migration table (`typeorm_migrations_<service>`) to prevent migration name collisions.
 
-All databases use TypeORM with `synchronize: true` — tables are auto-created on service startup.
+| Table                          | Service              | Description                              |
+| ------------------------------ | -------------------- | ---------------------------------------- |
+| `user`                         | User (3002)          | User profiles                            |
+| `post_entity`                  | Post (3003)          | Posts (drafts, published, scheduled)     |
+| `series_entity`                | Post (3003)          | Content series                           |
+| `post_metrics`                 | Post (3003)          | Per-platform engagement metrics          |
+| `platform_connection`          | Platform Int. (3009) | OAuth tokens, WhatsApp sessions          |
+| `broadcast_log`                | Platform Int. (3009) | WhatsApp broadcast history               |
+| `broadcast_recipient`          | Platform Int. (3009) | Per-recipient delivery status            |
+| `subscriptions`                | Billing (3008)       | Subscription tiers and limits            |
+| `notification_prefs`           | Notification (3004)  | User notification preferences            |
+| `payments`                     | Payment (3011)       | Payment transactions                     |
+| `tickets`                      | Support (3012)       | Support tickets                          |
+| `ticket_messages`              | Support (3012)       | Ticket conversation messages             |
+| `conversations`                | Support (3012)       | Chat conversations                       |
+| `messages`                     | Support (3012)       | Chat messages                            |
+
+For **local Docker** development, each service defaults to its own database (`faithreach_user`, `faithreach_post`, etc.) created by `init-databases.sh`. Set `DB_NAME=postgres` in `.env` to point all services at a single database (as used with Supabase).
+
+All services use TypeORM with **migrations** (not `synchronize: true`). Migrations are located in each service's `src/migrations/` directory.
 
 ---
 
@@ -656,8 +668,12 @@ All databases use TypeORM with `synchronize: true` — tables are auto-created o
 - [x] **WhatsApp ↔ Chat Bridge** — Two-way message forwarding between web chat and engineer's WhatsApp
 - [x] **Docker Infrastructure** — 16 containers, pre-flight scripts, volume persistence, health checks
 - [x] **Demo Seeding** — Seed script for development data (`pnpm seed`)
-- [ ] **Email Notifications** — Actual email sending via notification service
+- [x] **Email Notifications** — Transactional email sending via Nodemailer (post published, team invites, billing reminders)
+- [x] **Resilience Layer** — Circuit breakers, retry logic, rate limiting, and graceful degradation across all services
 - [ ] **Analytics Service** — Real aggregation in analytics backend (currently scaffold)
+- [ ] **Push / In-App Notifications** — Real-time push and in-app notification delivery
+- [ ] **Payment Webhooks** — Flutterwave webhook handler for subscription status sync
+- [ ] **Team Management API** — Invite, role, and member management endpoints
 - [ ] **Unit Tests** — Comprehensive test coverage across services
 
 ---
