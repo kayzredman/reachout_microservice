@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 import HideSidebarOnHome from "./HideSidebarOnHome";
 import ClientUserMenuWrapper from "./ClientUserMenuWrapper";
 import FloatingSupport from "./components/FloatingSupport";
+import SetupWizard from "./components/SetupWizard";
 
 export default function RootLayout({
   children,
@@ -36,6 +37,7 @@ export default function RootLayout({
           <ClientUserMenuWrapper />
           <HideSidebarOnHome>{children}</HideSidebarOnHome>
           <FloatingSupport />
+          <SetupWizard />
         </ClerkProviderWithConfig>
       </body>
     </html>

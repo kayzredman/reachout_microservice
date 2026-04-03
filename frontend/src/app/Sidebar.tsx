@@ -113,7 +113,7 @@ export default function Sidebar() {
                 href={item.href}
                 className={`sidebar-link${currentPath === item.href ? " sidebar-link-active" : ""}`}
                 onClick={() => setOpen(false)}
-                style={currentPath === item.href ? { background: "#f6f0ff", color: "#7c3aed" } : {}}
+                style={currentPath === item.href ? { background: "rgba(124,58,237,0.15)", color: "#fff" } : {}}
               >
                 <span className="sidebar-icon">{item.icon}</span>
                 {item.label}
@@ -125,7 +125,7 @@ export default function Sidebar() {
                 href={item.href}
                 className={`sidebar-link${currentPath === item.href ? " sidebar-link-active" : ""}`}
                 onClick={() => setOpen(false)}
-                style={currentPath === item.href ? { background: "#f6f0ff", color: "#7c3aed" } : {}}
+                style={currentPath === item.href ? { background: "rgba(124,58,237,0.15)", color: "#fff" } : {}}
               >
                 <span className="sidebar-icon">{item.icon}</span>
                 {item.label}
@@ -136,7 +136,7 @@ export default function Sidebar() {
             <NotificationBell />
           </div>
           {isSignedIn && user && (
-            <div className="sidebar-user" style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 18 }}>
+            <div className="sidebar-user" style={{ marginTop: "auto", borderTop: "1px solid #2e2e48", paddingTop: 18 }}>
               <Image
                 src={user.imageUrl}
                 alt="User avatar"
@@ -166,8 +166,9 @@ export default function Sidebar() {
                     width: "100%",
                     padding: "8px 12px",
                     borderRadius: "10px",
-                    border: "1.5px solid #e2e8f0",
-                    background: "#f8f9fb",
+                    border: "1.5px solid #2e2e48",
+                    background: "#23233a",
+                    color: "#d0d0e0",
                     justifyContent: "space-between",
                   },
                 },
@@ -219,8 +220,8 @@ export default function Sidebar() {
           left: 0;
           height: 100vh;
           width: 240px;
-          background: #fff;
-          border-right: 1px solid #d9dce2;
+          background: #1a1a2e;
+          border-right: none;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -230,7 +231,7 @@ export default function Sidebar() {
         .sidebar-logo {
           font-size: 1.5rem;
           font-weight: 700;
-          color: #7c3aed;
+          color: #fff;
           padding: 0 32px 16px 32px;
         }
         .sidebar-org-switcher {
@@ -248,18 +249,20 @@ export default function Sidebar() {
           gap: 12px;
           padding: 12px 16px;
           border-radius: 10px;
-          color: #222;
+          color: #a0a0b8;
           text-decoration: none;
           font-weight: 500;
           font-size: 1.08rem;
-          transition: background 0.15s;
+          transition: background 0.15s, color 0.15s;
         }
         .sidebar-link:hover, .sidebar-link.active {
-          background: #f5f0ff;
-          color: #7c3aed;
+          background: rgba(124, 58, 237, 0.15);
+          color: #fff;
+          border-left: 3px solid #7c3aed;
         }
         .sidebar-icon {
           font-size: 1.2em;
+          color: #7a7a96;
         }
         .sidebar-user {
           display: flex;
@@ -272,15 +275,16 @@ export default function Sidebar() {
           height: 44px;
           border-radius: 50%;
           object-fit: cover;
-          border: 2px solid #eee;
+          border: 2px solid #2e2e48;
         }
         .sidebar-username {
           font-weight: 600;
           font-size: 1rem;
+          color: #e0e0e8;
         }
         .sidebar-role {
           font-size: 0.92rem;
-          color: #888;
+          color: #7a7a96;
         }
         /* Mobile styles */
         .sidebar-mobile-bar {
@@ -297,8 +301,8 @@ export default function Sidebar() {
             display: flex;
             align-items: center;
             height: 56px;
-            background: #fff;
-            border-bottom: 1px solid #eee;
+            background: #1a1a2e;
+            border-bottom: 1px solid #2e2e48;
             padding: 0 16px;
             position: sticky;
             top: 0;
@@ -307,7 +311,7 @@ export default function Sidebar() {
           .sidebar-mobile-logo {
             font-size: 1.3rem;
             font-weight: 700;
-            color: #7c3aed;
+            color: #fff;
             margin-left: 12px;
           }
           .sidebar-hamburger {
@@ -315,7 +319,7 @@ export default function Sidebar() {
             border: none;
             font-size: 2rem;
             cursor: pointer;
-            color: #7c3aed;
+            color: #a78bfa;
           }
           .sidebar-drawer {
             display: block;
@@ -335,8 +339,8 @@ export default function Sidebar() {
             opacity: 1;
           }
           .sidebar-drawer-content {
-            background: #fff;
-            box-shadow: 0 8px 32px 0 rgba(44, 62, 80, 0.18);
+            background: #1a1a2e;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
             width: 100vw;
             height: 100vh;
             display: flex;
@@ -347,19 +351,19 @@ export default function Sidebar() {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #fff;
+            background: #1a1a2e;
             padding: 24px 24px 0 24px;
           }
                   .sidebar-link-active {
-                    background: #f6f0ff !important;
-                    color: #7c3aed !important;
+                    background: rgba(124,58,237,0.15) !important;
+                    color: #fff !important;
                   }
           .sidebar-close {
             background: none;
             border: none;
             font-size: 2rem;
             cursor: pointer;
-            color: #7c3aed;
+            color: #a78bfa;
           }
           .sidebar-drawer .sidebar-nav {
             margin-top: 24px;
