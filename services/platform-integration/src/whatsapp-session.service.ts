@@ -10,6 +10,7 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   type WAMessageUpdate,
+  type WAMessage,
 } from '@whiskeysockets/baileys';
 import * as QRCode from 'qrcode';
 import pino from 'pino';
@@ -20,6 +21,8 @@ import { EventEmitter } from 'events';
 /** Directory to persist Baileys auth sessions per organization */
 const SESSIONS_DIR = join(process.cwd(), '.wa-sessions');
 const baileysLogger = pino({ level: 'silent' });
+const SUPPORT_SERVICE_URL =
+  process.env.SUPPORT_SERVICE_URL || 'http://localhost:3012';
 
 interface SessionInfo {
   socket: WASocket;
@@ -36,6 +39,26 @@ export class WhatsAppSessionService
 {
   private readonly logger = new Logger(WhatsAppSessionService.name);
   private sessions = new Map<string, SessionInfo>();
+
+  /**
+   * Maps WhatsApp LID (linked-identity) JIDs to real phone numbers.
+   * Key: "orgId:remoteJid", Value: phone digits (e.g. "233551481853")
+   * Populated when we send [Ticket Support] messages and see the echo.
+   */
+  private lidToPhone = new Map<string, string>();
+  /** Tracks the last phone we sent a support message to, per org. */
+  private pendingSendPhone = new Map<string, string>();
+
+  /** Record which phone a support message was just sent to */
+  trackSentPhone(orgId: string, phone: string) {
+    const digits = phone.replace(/[^\d]/g, '');
+    this.pendingSendPhone.set(orgId, digits);
+  }
+
+  /** Resolve a remoteJid to a phone number (handles LID mapping) */
+  resolvePhone(orgId: string, remoteJid: string): string | undefined {
+    return this.lidToPhone.get(`${orgId}:${remoteJid}`);
+  }
 
   constructor(
     @InjectRepository(PlatformConnection)
@@ -114,6 +137,26 @@ export class WhatsAppSessionService
     // Handle message status updates (sent → delivered → read)
     socket.ev.on('messages.update', (updates) => {
       void this.handleMessageUpdates(updates);
+    });
+
+    // Handle incoming messages — forward to support service
+    socket.ev.on('messages.upsert', (m: { messages: WAMessage[]; type: string }) => {
+      void this.handleIncomingMessages(organizationId, m.messages);
+    });
+
+    // Capture LID-to-phone mappings from contact updates
+    socket.ev.on('contacts.update', (contacts) => {
+      for (const contact of contacts) {
+        if (!contact.id) continue;
+        // If contact has a phoneNumber field (from LID mapping)
+        const phoneNum = (contact as any).phoneNumber;
+        if (phoneNum && contact.id.endsWith('@lid')) {
+          const digits = phoneNum.replace(/[^\d]/g, '');
+          const mapKey = `${organizationId}:${contact.id}`;
+          this.lidToPhone.set(mapKey, digits);
+          this.logger.log(`Contact LID mapped: ${contact.id} → ${digits}`);
+        }
+      }
     });
 
     // Wait briefly for QR or connection
@@ -290,6 +333,75 @@ export class WhatsAppSessionService
 
       await this.recipientRepo.save(recipient);
       this.emit('status-update', recipient.broadcastId, msgId, newStatus);
+    }
+  }
+
+  /** Forward incoming WhatsApp messages to the support service */
+  private async handleIncomingMessages(
+    organizationId: string,
+    messages: WAMessage[],
+  ): Promise<void> {
+    for (const msg of messages) {
+      // Extract text content
+      const text =
+        msg.message?.conversation ||
+        msg.message?.extendedTextMessage?.text;
+      if (!text) continue; // Skip non-text (images, stickers, etc.)
+
+      const senderJid = msg.key.remoteJid;
+      if (!senderJid || senderJid.endsWith('@g.us')) continue; // Skip group messages
+
+      // When we see our own [Ticket Support] echo, capture the LID → phone mapping
+      if (text.startsWith('[Ticket Support]')) {
+        if (msg.key.fromMe) {
+          const pendingPhone = this.pendingSendPhone.get(organizationId);
+          if (pendingPhone && senderJid.endsWith('@lid')) {
+            const mapKey = `${organizationId}:${senderJid}`;
+            this.lidToPhone.set(mapKey, pendingPhone);
+            this.logger.log(
+              `Mapped LID ${senderJid} → ${pendingPhone} for org=${organizationId}`,
+            );
+          }
+        }
+        continue; // Don't forward programmatic messages to support
+      }
+
+      // Resolve the remoteJid to a real phone number
+      // For LID-based JIDs, use our mapping; otherwise strip the suffix
+      const resolved = this.resolvePhone(organizationId, senderJid);
+      const remotePhone = resolved
+        ? '+' + resolved
+        : '+' + senderJid.replace(/@.*$/, '');
+      const isFromMe = msg.key.fromMe === true;
+      const senderName = msg.pushName || remotePhone;
+
+      this.logger.log(
+        `WhatsApp msg: fromMe=${isFromMe} jid=${senderJid} resolved=${remotePhone} text="${text.substring(0, 50)}"`,
+      );
+
+      try {
+        const res = await fetch(`${SUPPORT_SERVICE_URL}/tickets/whatsapp/incoming`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orgId: organizationId,
+            senderPhone: remotePhone,
+            senderName,
+            fromMe: isFromMe,
+            text,
+            messageId: msg.key.id,
+            timestamp: msg.messageTimestamp
+              ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
+              : new Date().toISOString(),
+          }),
+        });
+        const result = await res.json();
+        this.logger.log(`Support webhook response: ${JSON.stringify(result)}`);
+      } catch (err) {
+        this.logger.warn(
+          `Failed to forward incoming message to support: ${err}`,
+        );
+      }
     }
   }
 

@@ -75,7 +75,7 @@ export class Ticket {
   @Column({ nullable: true })
   resolvedAt?: Date;
 
-  /** User's WhatsApp phone for ticket reply notifications */
+  /** Engineer's WhatsApp phone — client messages are forwarded here for mobile support */
   @Column({ nullable: true })
   whatsappPhone?: string;
 

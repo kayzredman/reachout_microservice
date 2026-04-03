@@ -16,7 +16,12 @@
     "dev:profile": "turbo run dev --filter=frontend --filter=user --parallel",
     "build": "turbo run build",
     "build:profile": "turbo run build --filter=frontend --filter=user",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "docker:up": "./scripts/dev-up.sh",
+    "docker:down": "docker compose down",
+    "docker:rebuild": "docker compose up --build -d",
+    "docker:logs": "docker compose logs -f",
+    "seed": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.1.6",

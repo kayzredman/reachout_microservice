@@ -60,7 +60,6 @@ export default function AdminTicketDetailPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sendViaWhatsApp, setSendViaWhatsApp] = useState(false);
   const [waPhone, setWaPhone] = useState("");
   const [waPhoneSaving, setWaPhoneSaving] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
@@ -168,18 +167,7 @@ export default function AdminTicketDetailPage() {
         });
       }
 
-      // Send via WhatsApp if toggled on and ticket has WhatsApp phone
-      if (sendViaWhatsApp && ticket?.whatsappPhone && ticket.orgId) {
-        fetch("/api/support/tickets/whatsapp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orgId: ticket.orgId,
-            phone: ticket.whatsappPhone,
-            message: text,
-          }),
-        }).catch(() => { /* silent */ });
-      }
+
     } catch {
       /* ignore */
     } finally {
@@ -287,35 +275,56 @@ export default function AdminTicketDetailPage() {
               <span className={styles.fieldValue}>{new Date(ticket.createdAt).toLocaleString()}</span>
             </div>
 
-            {ticket.whatsappPhone ? (
-              <div className={styles.fieldGroup}>
-                <label>WhatsApp</label>
-                <span className={styles.fieldValue}>{ticket.whatsappPhone}</span>
-              </div>
-            ) : (
-              <div className={styles.waPhoneGroup}>
-                <label>WhatsApp Number</label>
-                <div className={styles.waPhoneInput}>
-                  <input
-                    type="tel"
-                    value={waPhone}
-                    onChange={(e) => setWaPhone(e.target.value)}
-                    placeholder="e.g. 233241234567"
-                    className={styles.waPhoneField}
-                  />
-                  <button
-                    className={styles.waPhoneSaveBtn}
-                    onClick={saveWhatsAppPhone}
-                    disabled={!waPhone.trim() || waPhoneSaving}
-                  >
-                    {waPhoneSaving ? "..." : "Save"}
-                  </button>
-                </div>
-                <span className={styles.waPhoneHint}>
-                  Add client&apos;s WhatsApp to also chat via WhatsApp
-                </span>
-              </div>
-            )}
+            <div className={styles.waPhoneGroup}>
+              <label>Your WhatsApp</label>
+              {ticket.whatsappPhone ? (
+                <>
+                  <div className={styles.waPhoneDisplay}>
+                    <span>{ticket.whatsappPhone}</span>
+                    <button
+                      className={styles.waPhoneRemoveBtn}
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/support/tickets/${id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ whatsappPhone: null }),
+                          });
+                          if (res.ok) setTicket((prev) => prev ? { ...prev, whatsappPhone: undefined } : prev);
+                        } catch { /* ignore */ }
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <span className={styles.waPhoneHint}>
+                    Client messages will be forwarded to your WhatsApp
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className={styles.waPhoneInput}>
+                    <input
+                      type="tel"
+                      value={waPhone}
+                      onChange={(e) => setWaPhone(e.target.value)}
+                      placeholder="e.g. 233241234567"
+                      className={styles.waPhoneField}
+                    />
+                    <button
+                      className={styles.waPhoneSaveBtn}
+                      onClick={saveWhatsAppPhone}
+                      disabled={!waPhone.trim() || waPhoneSaving}
+                    >
+                      {waPhoneSaving ? "..." : "Save"}
+                    </button>
+                  </div>
+                  <span className={styles.waPhoneHint}>
+                    Add your WhatsApp number to receive client messages on your phone
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -364,16 +373,7 @@ export default function AdminTicketDetailPage() {
 
           {!isClosed ? (
             <div className={styles.chatInputArea}>
-              {ticket.whatsappPhone && (
-                <label className={styles.waToggle}>
-                  <input
-                    type="checkbox"
-                    checked={sendViaWhatsApp}
-                    onChange={(e) => setSendViaWhatsApp(e.target.checked)}
-                  />
-                  <span className={styles.waToggleLabel}>Also send via WhatsApp</span>
-                </label>
-              )}
+
               <div className={styles.chatInput}>
                 <input
                   value={input}

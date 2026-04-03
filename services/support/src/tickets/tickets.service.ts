@@ -85,4 +85,37 @@ export class TicketsService {
       avgResolutionMs: avgResult?.avg ? parseFloat(avgResult.avg) : null,
     };
   }
+
+  /** Find an open ticket linked to this WhatsApp phone */
+  async findByWhatsAppPhone(
+    orgId: string,
+    phone: string,
+  ): Promise<Ticket | null> {
+    return this.repo.findOne({
+      where: [
+        { orgId, whatsappPhone: phone, status: TicketStatus.OPEN },
+        { orgId, whatsappPhone: phone, status: TicketStatus.ESCALATED },
+        { orgId, whatsappPhone: phone, status: TicketStatus.IN_PROGRESS },
+      ],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Find any active ticket for this org that has a whatsappPhone set.
+   * Used as a fallback when the sender's phone (e.g. a LID) doesn't directly
+   * match the stored engineer phone.
+   */
+  async findActiveTicketWithWhatsApp(
+    orgId: string,
+  ): Promise<Ticket | null> {
+    return this.repo.findOne({
+      where: [
+        { orgId, status: TicketStatus.OPEN },
+        { orgId, status: TicketStatus.ESCALATED },
+        { orgId, status: TicketStatus.IN_PROGRESS },
+      ],
+      order: { createdAt: 'DESC' },
+    }).then(t => (t?.whatsappPhone ? t : null));
+  }
 }

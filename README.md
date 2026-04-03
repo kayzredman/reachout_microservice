@@ -11,7 +11,7 @@ FaithReach helps faith-based creators manage, schedule, and publish content acro
 | Layer            | Technology                                               |
 | ---------------- | -------------------------------------------------------- |
 | **Frontend**     | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| **Backend**      | NestJS 11, TypeScript (11 microservices)                 |
+| **Backend**      | NestJS 11, TypeScript (12 microservices)                 |
 | **Auth**         | Clerk (Organizations, RBAC)                              |
 | **Database**     | PostgreSQL 15, TypeORM                                   |
 | **WhatsApp**     | Baileys (QR-based multi-device protocol)                 |
@@ -44,11 +44,15 @@ faithreach/
 │   ├── billing/               # Subscription tiers & limits (port 3008) [DB]
 │   ├── platform-integration/  # OAuth, WhatsApp Baileys, publishing (port 3009) [DB]
 │   ├── scheduler/             # Cron scheduling & optimal times (port 3010)
-│   └── payment/               # Flutterwave payments & MoMo (port 3011) [DB]
+│   ├── payment/               # Flutterwave payments & MoMo (port 3011) [DB]
+│   └── support/               # Support tickets & live chat (port 3012) [DB]
 ├── shared/                    # @faithreach/shared — common types & utilities
 ├── scripts/
-│   └── init-databases.sh      # Auto-create all PostgreSQL databases
-├── docker-compose.yaml        # Full stack orchestration
+│   ├── init-databases.sh      # Auto-create all PostgreSQL databases
+│   ├── dev-up.sh              # Pre-flight checks, ordered startup, health checks
+│   └── seed-demo.mjs          # Seed demo data for development
+├── docker-compose.yaml        # Full stack orchestration (16 containers)
+├── .env.example               # All required environment variables
 ├── turbo.json                 # TurboRepo task config
 └── pnpm-workspace.yaml        # Workspace definition
 ```
@@ -70,8 +74,7 @@ faithreach/
 | Billing              | 3008 | `faithreach_billing`   | Implemented |
 | Platform Integration | 3009 | `faithreach_platform`  | Implemented |
 | Scheduler            | 3010 | —                      | Implemented |
-| Payment              | 3011 | `faithreach_payment`   | Implemented |
-
+| Payment              | 3011 | `faithreach_payment`   | Implemented || Support              | 3012 | `faithreach_support`      | Implemented |
 All services use `process.env.PORT` with sensible defaults and `process.env.FRONTEND_URL` for CORS.
 
 ---
@@ -104,6 +107,14 @@ All services use `process.env.PORT` with sensible defaults and `process.env.FRON
 - Per-platform publish results with success/failure indicators
 - Edit mode for existing draft posts
 - Series linking from planner
+
+**Support Chat Widget** — Live customer support chat:
+
+- Floating chat bubble on all authenticated pages
+- Real-time messaging via WebSocket (Socket.IO)
+- Automatic ticket escalation to human support engineer
+- Two-way WhatsApp bridge: engineer replies on WhatsApp ↔ user sees messages in web chat
+- Support engineer phone linked per ticket for WhatsApp forwarding
 
 **Content Library** (`/content`) — Browse and manage all posts with status filtering and search.
 
@@ -160,6 +171,8 @@ All services use `process.env.PORT` with sensible defaults and `process.env.FRON
 | `/api/payment/validate-momo`             | Payment (3011)        |
 | `/api/payment/pricing`                   | Payment (3011)        |
 | `/api/payment/history/[orgId]`           | Payment (3011)        |
+| `/api/support/*`                         | Support (3012)        |
+| `/api/chat/*`                            | Support (3012)        |
 
 **Payment Checkout** (`/payment/checkout`) — Custom payment page:
 
@@ -197,6 +210,9 @@ Full OAuth connection management and content publishing to all platforms:
 - CSV broadcast: upload phone list, validate numbers, send to all with delivery tracking
 - Real-time message status updates (sent → delivered → read) via `messages.update` events
 - Broadcast logs with per-recipient status stored in PostgreSQL
+- **Two-way support chat bridge** — Incoming WhatsApp messages forwarded to support tickets, engineer replies forwarded back to user's web chat
+- LID (Linked Identity) resolution for modern WhatsApp multi-device protocol
+- Docker volume persistence (`wa-sessions`) — sessions survive container rebuilds
 
 **Key components:**
 
@@ -291,6 +307,39 @@ Cron-based post scheduling with auto-publish:
 - Polls for scheduled posts and triggers publishing at scheduled times
 - Works with Post service for publish orchestration
 
+#### Support Service (Port 3012)
+
+Live customer support with two-way WhatsApp integration:
+
+- **Ticket management** — Create, assign, escalate, and resolve support tickets
+- **Real-time chat** — WebSocket-based messaging between users and support engineers
+- **WhatsApp bridge** — Bi-directional message forwarding between web chat and engineer's WhatsApp
+- **Incoming webhook** — `POST /tickets/whatsapp/incoming` receives messages from platform-integration
+- **LID fallback matching** — Handles modern WhatsApp Linked Identity JIDs when phone numbers don't match
+- **Role detection** — Automatically determines if message is from engineer (ADMIN) or customer (USER)
+- **Per-ticket engineer phone** — Each ticket can have a WhatsApp phone number for the assigned engineer
+
+**Key components:**
+
+- `TicketGateway` — Socket.IO WebSocket gateway at `/tickets` namespace
+- `TicketsController` — REST API + WhatsApp incoming webhook
+- `TicketsService` — Ticket CRUD with phone-based and fallback ticket matching
+- `TicketMessagesService` — Message persistence and retrieval
+- `Ticket` entity — orgId, status, whatsappPhone, assignedTo
+- `TicketMessage` entity — ticketId, senderRole (USER/ADMIN/SYSTEM), content
+
+**Database:** `faithreach_support` (PostgreSQL)
+
+**WhatsApp ↔ Web Chat Flow:**
+
+```
+User (web chat) → WebSocket → ticket.gateway.ts → forwardToEngineerWhatsApp()
+  → POST /platforms/:orgId/whatsapp/send → Baileys sendMessage → Engineer's phone
+
+Engineer (WhatsApp) → Baileys messages.upsert → handleIncomingMessages()
+  → POST /tickets/whatsapp/incoming → Save to DB → WebSocket push → User (web chat)
+```
+
 #### Payment Service (Port 3011)
 
 Provider-agnostic payment processing with Flutterwave integration:
@@ -351,11 +400,21 @@ Scaffolded for future cross-platform analytics aggregation. Current metrics are 
 # Clone and install
 pnpm install
 
-# Start everything (Postgres + all services + frontend)
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your API keys (Clerk, OpenAI, Flutterwave, Meta, etc.)
+
+# Start everything (pre-flight checks → infra → DBs → all services → health check)
+pnpm docker:up
+
+# Or start manually
 docker compose up --build
+
+# Seed demo data (optional)
+pnpm seed
 ```
 
-This starts PostgreSQL with all 5 databases auto-created, Supabase Studio for DB browsing, all 10 backend services, and the frontend.
+This starts PostgreSQL, Redis, Adminer, all 12 backend services, and the frontend (16 containers total). Databases are auto-created via `init-databases.sh`.
 
 ### Option B: Local Development
 
@@ -380,6 +439,8 @@ docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_po
 docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_billing;"
 docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_notification;"
 docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_payment;"
+docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_support;"
+docker exec -it faithreach-db psql -U postgres -c "CREATE DATABASE faithreach_planner;"
 ```
 
 > TypeORM auto-creates tables via `synchronize: true` in development.
@@ -506,6 +567,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | Platform Int. API    | http://localhost:3009         |
 | Scheduler API        | http://localhost:3010         |
 | Payment API          | http://localhost:3011         |
+| Support API          | http://localhost:3012         |
 
 ---
 
@@ -515,12 +577,15 @@ The project includes a complete Docker Compose setup for local development and d
 
 **What's included:**
 
-- **PostgreSQL 15** with healthchecks and auto-database creation (6 databases via `init-databases.sh`)
+- **PostgreSQL 15** with healthchecks and auto-database creation (7 databases via `init-databases.sh`)
+- **Redis 7** for Bull queues (scheduler, notifications)
 - **Adminer** on port 8080 for visual database management
-- **All 11 NestJS services** with multi-stage builds (`node:20-alpine`)
+- **All 12 NestJS services** with multi-stage builds (`node:20-alpine`)
 - **Next.js frontend** with production build
-- **Service dependencies** — Services wait for Postgres health before starting
+- **Service dependencies** — Services wait for Postgres and Redis health before starting
 - **Inter-service networking** — Services communicate via Docker service names
+- **WhatsApp session persistence** — Named volume `wa-sessions` preserves Baileys auth across rebuilds
+- **16 containers total** — 3 infrastructure (Postgres, Redis, Adminer) + 12 backends + 1 frontend
 
 **Dockerfiles** are located in each service directory and in `frontend/`.
 
@@ -547,6 +612,8 @@ docker compose logs -f post
 | `faithreach_billing`      | Billing (3008)       | subscriptions                             |
 | `faithreach_notification` | Notification (3004)  | notification_preferences                  |
 | `faithreach_payment`      | Payment (3011)       | payments                                  |
+| `faithreach_support`      | Support (3012)       | tickets, ticket_messages                  |
+| `faithreach_planner`      | Content Planner (3007)| content_plans                            |
 
 All databases use TypeORM with `synchronize: true` — tables are auto-created on service startup.
 
@@ -554,11 +621,16 @@ All databases use TypeORM with `synchronize: true` — tables are auto-created o
 
 ## Scripts
 
-| Command      | Description                             |
-| ------------ | --------------------------------------- |
-| `pnpm dev`   | Run all services + frontend in dev mode |
-| `pnpm build` | Build all packages                      |
-| `pnpm lint`  | Lint all packages                       |
+| Command              | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `pnpm dev`           | Run all services + frontend in dev mode              |
+| `pnpm build`         | Build all packages                                   |
+| `pnpm lint`          | Lint all packages                                    |
+| `pnpm docker:up`     | Pre-flight checks → start infra → create DBs → build & start all |
+| `pnpm docker:down`   | Tear down all containers                             |
+| `pnpm docker:rebuild`| Rebuild and restart all containers                   |
+| `pnpm docker:logs`   | Follow all container logs                            |
+| `pnpm seed`          | Seed demo data for development                       |
 
 ---
 
@@ -580,6 +652,10 @@ All databases use TypeORM with `synchronize: true` — tables are auto-created o
 - [x] **Dashboard & Analytics** — Overview cards, charts, platform breakdowns
 - [x] **Flutterwave Payments** — Card + Mobile Money (MTN, Telecel, AirtelTigo), multi-currency
 - [x] **Payment Checkout** — Custom checkout page with GHS/NGN/KES/USD pricing
+- [x] **Support Tickets** — Live chat widget, ticket management, WebSocket real-time messaging
+- [x] **WhatsApp ↔ Chat Bridge** — Two-way message forwarding between web chat and engineer's WhatsApp
+- [x] **Docker Infrastructure** — 16 containers, pre-flight scripts, volume persistence, health checks
+- [x] **Demo Seeding** — Seed script for development data (`pnpm seed`)
 - [ ] **Email Notifications** — Actual email sending via notification service
 - [ ] **Analytics Service** — Real aggregation in analytics backend (currently scaffold)
 - [ ] **Unit Tests** — Comprehensive test coverage across services
@@ -601,8 +677,13 @@ cd services/<service-name>
 
 - Baileys requires a `pino` logger instance (never pass `undefined`)
 - Sessions persist in `.wa-sessions/{orgId}/` and auto-restore on startup
+- Docker volume `wa-sessions` ensures sessions survive container rebuilds
 - WhatsApp status values: `"connected"`, `"disconnected"`, `"qr"`, `"connecting"`
 - Broadcasting sends individual messages (not group messages)
+- Modern WhatsApp uses LID (Linked Identity) JIDs instead of phone-based JIDs
+- The `handleIncomingMessages()` handler resolves LIDs via contact mapping + org-level fallback
+- `[Ticket Support]` prefix on programmatic messages prevents echo loops
+- The organization's WhatsApp phone (Baileys-connected) is different from the engineer's phone (entered per-ticket)
 
 ### OAuth Setup
 

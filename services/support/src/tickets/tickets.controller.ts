@@ -7,17 +7,22 @@ import {
   Body,
   Query,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service.js';
 import { TicketMessagesService } from './ticket-messages.service.js';
 import { TicketCategory, TicketPriority } from './ticket.entity.js';
 import { SenderRole } from './ticket-message.entity.js';
+import { TicketGateway } from './ticket.gateway.js';
 
 @Controller('tickets')
 export class TicketsController {
+  private readonly logger = new Logger(TicketsController.name);
+
   constructor(
     private readonly svc: TicketsService,
     private readonly msgSvc: TicketMessagesService,
+    private readonly gateway: TicketGateway,
   ) {}
 
   /** POST /tickets — create a new support ticket */
@@ -110,5 +115,80 @@ export class TicketsController {
   @Patch('mark-wa/:messageId')
   markWhatsAppSent(@Param('messageId') messageId: string) {
     return this.msgSvc.markWhatsAppSent(messageId);
+  }
+
+  /**
+   * POST /tickets/whatsapp/incoming — receive an incoming WhatsApp message
+   * Called by the platform-integration service when a customer texts in.
+   * Finds the open ticket linked to that phone, adds the message, and
+   * pushes it to connected admins via WebSocket.
+   */
+  @Post('whatsapp/incoming')
+  async whatsappIncoming(
+    @Body()
+    body: {
+      orgId: string;
+      senderPhone: string;
+      senderName?: string;
+      fromMe?: boolean;
+      text: string;
+      messageId?: string;
+      timestamp?: string;
+    },
+  ) {
+    const { orgId, senderPhone, senderName, text } = body;
+    if (!orgId || !senderPhone || !text) {
+      return { received: false, reason: 'Missing required fields' };
+    }
+
+    // Find an open ticket where whatsappPhone matches the sender
+    let ticket = await this.svc.findByWhatsAppPhone(orgId, senderPhone);
+
+    // Fallback: if no match (e.g. sender is a WhatsApp LID, not a phone number),
+    // find any active ticket for this org that has WhatsApp enabled
+    if (!ticket) {
+      ticket = await this.svc.findActiveTicketWithWhatsApp(orgId);
+      if (ticket) {
+        this.logger.log(
+          `LID fallback: matched ticket ${ticket.id} for org=${orgId} (sender=${senderPhone})`,
+        );
+      }
+    }
+
+    if (!ticket) {
+      this.logger.debug(
+        `No open ticket for phone=${senderPhone} org=${orgId}, ignoring`,
+      );
+      return { received: false, reason: 'No matching open ticket' };
+    }
+
+    // Determine if the sender is the engineer:
+    // - Direct match: senderPhone === ticket.whatsappPhone
+    // - LID fallback: phone didn't match, but message was NOT fromMe
+    //   (fromMe = sent from the Baileys-connected device = the user/org phone,
+    //    !fromMe = received from external = the engineer's phone)
+    const isEngineer =
+      ticket.whatsappPhone === senderPhone || body.fromMe === false;
+    const role = isEngineer ? SenderRole.ADMIN : SenderRole.USER;
+    const name = isEngineer
+      ? (senderName || 'Support Engineer')
+      : (senderName || senderPhone);
+
+    // Save the message
+    const message = await this.msgSvc.addMessage({
+      ticketId: ticket.id,
+      senderId: senderPhone,
+      senderRole: role,
+      senderName: name,
+      content: text,
+    });
+
+    // Push to admin browsers via WebSocket
+    this.gateway.emitToTicket(ticket.id, 'new_message', message);
+
+    this.logger.log(
+      `WhatsApp message from ${senderPhone} → ticket ${ticket.id}`,
+    );
+    return { received: true, ticketId: ticket.id, messageId: message.id };
   }
 }

@@ -1,5 +1,4 @@
 FROM node:20-alpine AS build
-RUN apk add --no-cache python3 make g++ git
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
@@ -13,5 +12,5 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
-EXPOSE 3009
+EXPOSE 3011
 CMD ["node", "dist/main.js"]

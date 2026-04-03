@@ -249,6 +249,8 @@ export class PlatformController {
       throw new NotFoundException('WhatsApp is not connected for this organization.');
     }
     const jid = body.phone.replace(/[^\d]/g, '') + '@s.whatsapp.net';
+    // Track this phone so we can map the LID when the echo comes in
+    this.sessionService.trackSentPhone(orgId, body.phone);
     const sent = await socket.sendMessage(jid, { text: body.message });
     return { success: true, messageId: sent?.key?.id };
   }
