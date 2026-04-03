@@ -2,6 +2,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { EmailService } from '../email.service';
+import { InAppNotificationService } from '../in-app-notification.service';
+import { NotificationGateway } from '../notification.gateway';
 
 export interface NotifyJobData {
   type: 'email' | 'push' | 'in-app';
@@ -19,6 +21,8 @@ export class NotifyProcessor extends WorkerHost {
 
   constructor(
     @Inject(EmailService) private readonly emailService: EmailService,
+    private readonly inAppService: InAppNotificationService,
+    private readonly gateway: NotificationGateway,
   ) {
     super();
   }
@@ -34,10 +38,11 @@ export class NotifyProcessor extends WorkerHost {
         await this.handleEmail(job.data);
         break;
       case 'push':
-        this.logger.log(`Push notification stub for user ${userId}`);
+        // Push also creates an in-app notification + WebSocket delivery
+        await this.handleInApp(job.data);
         break;
       case 'in-app':
-        this.logger.log(`In-app notification stub for user ${userId}`);
+        await this.handleInApp(job.data);
         break;
     }
 
@@ -55,6 +60,23 @@ export class NotifyProcessor extends WorkerHost {
       subject: data.subject,
       html: data.body,
       text: data.text,
+    });
+  }
+
+  private async handleInApp(data: NotifyJobData): Promise<void> {
+    const notif = await this.inAppService.create({
+      userId: data.userId,
+      organizationId: data.orgId,
+      title: data.subject,
+      body: data.text || data.body,
+    });
+
+    this.gateway.pushToUser(data.userId, data.orgId, {
+      id: notif.id,
+      title: notif.title,
+      body: notif.body,
+      read: notif.read,
+      createdAt: notif.createdAt,
     });
   }
 }

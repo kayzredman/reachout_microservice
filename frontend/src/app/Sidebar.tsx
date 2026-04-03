@@ -17,6 +17,7 @@ import {
   HiOutlineOfficeBuilding,
   HiOutlineViewGridAdd,
 } from "react-icons/hi";
+import NotificationBell from "./components/NotificationBell";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: <HiOutlineViewGrid /> },
@@ -131,6 +132,9 @@ export default function Sidebar() {
               </Link>
             ))}
           </nav>
+          <div style={{ padding: "0 16px" }}>
+            <NotificationBell />
+          </div>
           {isSignedIn && user && (
             <div className="sidebar-user" style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 18 }}>
               <Image
@@ -188,6 +192,9 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
+        <div style={{ padding: "0 16px" }}>
+          <NotificationBell />
+        </div>
         {isSignedIn && user && (
           <div className="sidebar-user">
             <Image

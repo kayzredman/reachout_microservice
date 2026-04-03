@@ -5,9 +5,13 @@ import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NotificationPrefs } from './notification-prefs.entity';
+import { Notification } from './notification.entity';
 import { NotificationPrefsModule } from './notification-prefs.module';
 import { NotifyProcessor } from './queues/notify.processor';
 import { EmailService } from './email.service';
+import { InAppNotificationService } from './in-app-notification.service';
+import { InAppNotificationController } from './in-app-notification.controller';
+import { NotificationGateway } from './notification.gateway';
 import { SendNotificationController } from './send-notification.controller';
 import { HealthController } from './common/health.controller';
 import { GracefulShutdownService } from './common/graceful-shutdown.service';
@@ -32,17 +36,19 @@ import Redis from 'ioredis';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'faithreach_notification',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      entities: [NotificationPrefs],
+      entities: [NotificationPrefs, Notification],
       synchronize: false,
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations_notification',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
+    TypeOrmModule.forFeature([Notification]),
     NotificationPrefsModule,
   ],
-  controllers: [AppController, SendNotificationController, HealthController],
+  controllers: [AppController, SendNotificationController, InAppNotificationController, HealthController],
   providers: [
     AppService, NotifyProcessor, EmailService,
+    InAppNotificationService, NotificationGateway,
     GracefulShutdownService, ResilientHttpService,
     {
       provide: 'HEALTH_REDIS',
