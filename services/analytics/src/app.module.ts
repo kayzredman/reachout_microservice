@@ -19,6 +19,7 @@ import { join } from 'path';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: 'faithreach_post',
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       entities: [PostEntity, PostMetrics],
       synchronize: false, // read-only: post service owns the schema
     }),

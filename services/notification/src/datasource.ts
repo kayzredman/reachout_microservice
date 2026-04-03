@@ -12,6 +12,7 @@ export default new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'faithreach_notification',
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [NotificationPrefs],
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
 });

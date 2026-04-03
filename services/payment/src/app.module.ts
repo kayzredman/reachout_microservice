@@ -19,6 +19,7 @@ import { ResilientHttpService } from './common/resilient-http.service.js';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'faithreach_payment',
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       entities: [Payment],
       synchronize: false,
       migrationsRun: true,

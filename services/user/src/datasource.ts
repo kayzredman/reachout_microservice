@@ -12,6 +12,7 @@ export default new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'faithreach_user',
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [User],
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
 });

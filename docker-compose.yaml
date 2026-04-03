@@ -76,9 +76,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3002
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_user
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       FRONTEND_URL: http://localhost:3000
@@ -100,9 +101,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3003
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_post
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       PLATFORM_SERVICE_URL: http://platform-integration:3009
@@ -126,9 +128,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3004
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_notification
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       REDIS_HOST: redis
@@ -150,9 +153,10 @@ services:
       - "3005:3005"
     environment:
       PORT: 3005
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_post
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       FRONTEND_URL: http://localhost:3000
@@ -190,9 +194,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3007
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_planner
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       POST_SERVICE_URL: http://post:3003
@@ -216,9 +221,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3008
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_billing
       FRONTEND_URL: http://localhost:3000
 
@@ -241,9 +247,10 @@ services:
       - wa-sessions:/app/.wa-sessions
     environment:
       PORT: 3009
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_platform
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       TWITTER_CLIENT_ID: ${TWITTER_CLIENT_ID}
@@ -273,9 +280,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3010
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       POST_SERVICE_URL: http://post:3003
       REDIS_HOST: redis
@@ -297,9 +305,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3011
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_payment
       BILLING_SERVICE_URL: http://billing:3008
       PAYMENT_PROVIDER: flutterwave
@@ -324,9 +333,10 @@ services:
       start_period: 30s
     environment:
       PORT: 3012
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST:-db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
       DB_NAME: faithreach_support
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       USER_SERVICE_URL: http://user:3002
