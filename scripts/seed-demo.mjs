@@ -1,23 +1,50 @@
 /**
  * seed-demo.mjs
  *
- * Seeds both faithreach_post and faithreach_platform databases with
- * realistic demo data for dashboard & analytics marketing screenshots.
+ * Seeds the FaithReach database with realistic demo data for
+ * dashboard & analytics marketing screenshots.
  *
- * Usage: node seed-demo.mjs
+ * Reads connection details from .env (DB_HOST, DB_USERNAME, DB_PASSWORD,
+ * DB_NAME, DB_SSL) or falls back to local Docker defaults.
+ *
+ * Usage: node scripts/seed-demo.mjs
  */
 
 import pg from "pg";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 const { Client } = pg;
+
+/* ── Load .env from project root ─────────────────────── */
+const __dirname = dirname(fileURLToPath(import.meta.url));
+try {
+  const envPath = resolve(__dirname, "..", ".env");
+  const envContent = readFileSync(envPath, "utf8");
+  for (const line of envContent.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    if (!process.env[key]) process.env[key] = val;
+  }
+} catch {
+  // .env not found — rely on existing env vars or defaults
+}
 
 const ORG_ID = "org_3BTod2QLFmvD0KovlP3cDouVNLg";
 const USER_ID = "user_demo_seed";
 
+const useSSL = process.env.DB_SSL === "true";
 const DB_OPTS = {
-  host: "localhost",
-  port: 5432,
-  user: "postgres",
-  password: "postgres",
+  host: process.env.DB_HOST || "localhost",
+  port: parseInt(process.env.DB_PORT || "5432", 10),
+  user: process.env.DB_USERNAME || "postgres",
+  password: process.env.DB_PASSWORD || "postgres",
+  database: process.env.DB_NAME || "postgres",
+  ...(useSSL ? { ssl: { rejectUnauthorized: false } } : {}),
 };
 
 /* ── Helpers ─────────────────────────────────────────── */
@@ -323,50 +350,41 @@ async function seedPlatforms(client) {
 
 async function main() {
   console.log("\n🌱 FaithReach Demo Data Seeder\n");
-  console.log(`   Org: ${ORG_ID}\n`);
+  console.log(`   Org:  ${ORG_ID}`);
+  console.log(`   Host: ${DB_OPTS.host}`);
+  console.log(`   DB:   ${DB_OPTS.database}`);
+  console.log(`   SSL:  ${useSSL}\n`);
 
-  // ── Post DB ──
-  console.log("📦 faithreach_post database:");
-  const postDb = new Client({ ...DB_OPTS, database: "faithreach_post" });
-  await postDb.connect();
+  const client = new Client(DB_OPTS);
+  await client.connect();
 
   try {
     // Clean existing demo data (only our seeded data, preserve real data)
-    const existingDemoCount = await postDb.query(
+    const existingDemoCount = await client.query(
       `SELECT COUNT(*) FROM post_entity WHERE "createdBy" = $1`,
       [USER_ID],
     );
     if (parseInt(existingDemoCount.rows[0].count) > 0) {
       console.log("  → Cleaning previous demo data…");
-      const oldPostIds = await postDb.query(
+      const oldPostIds = await client.query(
         `SELECT id FROM post_entity WHERE "createdBy" = $1`,
         [USER_ID],
       );
       const ids = oldPostIds.rows.map((r) => r.id);
       if (ids.length) {
-        await postDb.query(`DELETE FROM post_metrics WHERE "postId" = ANY($1::text[])`, [ids]);
-        await postDb.query(`DELETE FROM post_entity WHERE "createdBy" = $1`, [USER_ID]);
-        await postDb.query(`DELETE FROM series_entity WHERE "createdBy" = $1`, [USER_ID]);
+        await client.query(`DELETE FROM post_metrics WHERE "postId" = ANY($1::text[])`, [ids]);
+        await client.query(`DELETE FROM post_entity WHERE "createdBy" = $1`, [USER_ID]);
+        await client.query(`DELETE FROM series_entity WHERE "createdBy" = $1`, [USER_ID]);
       }
       console.log("  ✓ Cleaned");
     }
 
-    const postIds = await seedPosts(postDb);
-    await seedMetrics(postDb, postIds);
-    await seedSeries(postDb);
+    const postIds = await seedPosts(client);
+    await seedMetrics(client, postIds);
+    await seedSeries(client);
+    await seedPlatforms(client);
   } finally {
-    await postDb.end();
-  }
-
-  // ── Platform DB ──
-  console.log("\n📦 faithreach_platform database:");
-  const platDb = new Client({ ...DB_OPTS, database: "faithreach_platform" });
-  await platDb.connect();
-
-  try {
-    await seedPlatforms(platDb);
-  } finally {
-    await platDb.end();
+    await client.end();
   }
 
   console.log("\n✅ Done! Dashboard & Analytics pages now have demo data.\n");

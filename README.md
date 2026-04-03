@@ -415,11 +415,11 @@ pnpm docker:up
 # Or start manually
 docker compose up --build
 
-# Seed demo data (optional)
+# Seed demo data (optional — reads DB_* from .env)
 pnpm seed
 ```
 
-This starts PostgreSQL, Redis, Adminer, all 12 backend services, and the frontend (16 containers total). Databases are auto-created via `init-databases.sh`.
+This starts PostgreSQL, Redis, Adminer, all 12 backend services, and the frontend (16 containers total). When `DB_HOST` is set in `.env` (e.g. Supabase), all services and the seed script connect to the remote database; otherwise they fall back to the local Docker PostgreSQL container.
 
 ### Option B: Local Development
 
@@ -642,7 +642,7 @@ All services use TypeORM with **migrations** (not `synchronize: true`). Migratio
 | `pnpm docker:down`   | Tear down all containers                             |
 | `pnpm docker:rebuild`| Rebuild and restart all containers                   |
 | `pnpm docker:logs`   | Follow all container logs                            |
-| `pnpm seed`          | Seed demo data for development                       |
+| `pnpm seed`          | Seed demo data (reads DB_* from `.env`)              |
 
 ---
 
