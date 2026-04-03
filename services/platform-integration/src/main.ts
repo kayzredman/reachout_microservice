@@ -1,3 +1,7 @@
+import { config } from 'dotenv';
+import { join } from 'path';
+config({ path: join(__dirname, '..', '.env') });
+
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module.js';
