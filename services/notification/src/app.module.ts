@@ -9,6 +9,10 @@ import { NotificationPrefsModule } from './notification-prefs.module';
 import { NotifyProcessor } from './queues/notify.processor';
 import { EmailService } from './email.service';
 import { SendNotificationController } from './send-notification.controller';
+import { HealthController } from './common/health.controller';
+import { GracefulShutdownService } from './common/graceful-shutdown.service';
+import { ResilientHttpService } from './common/resilient-http.service';
+import Redis from 'ioredis';
 
 @Module({
   imports: [
@@ -34,7 +38,19 @@ import { SendNotificationController } from './send-notification.controller';
     }),
     NotificationPrefsModule,
   ],
-  controllers: [AppController, SendNotificationController],
-  providers: [AppService, NotifyProcessor, EmailService],
+  controllers: [AppController, SendNotificationController, HealthController],
+  providers: [
+    AppService, NotifyProcessor, EmailService,
+    GracefulShutdownService, ResilientHttpService,
+    {
+      provide: 'HEALTH_REDIS',
+      useFactory: () => new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        lazyConnect: true,
+      }),
+    },
+  ],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

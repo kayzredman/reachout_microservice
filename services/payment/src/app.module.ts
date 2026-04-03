@@ -5,6 +5,9 @@ import { join } from 'path';
 import { AppController } from './app.controller.js';
 import { PaymentModule } from './payment.module.js';
 import { Payment } from './payment.entity.js';
+import { HealthController } from './common/health.controller.js';
+import { GracefulShutdownService } from './common/graceful-shutdown.service.js';
+import { ResilientHttpService } from './common/resilient-http.service.js';
 
 @Module({
   imports: [
@@ -23,6 +26,8 @@ import { Payment } from './payment.entity.js';
     }),
     PaymentModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
+  providers: [GracefulShutdownService, ResilientHttpService],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

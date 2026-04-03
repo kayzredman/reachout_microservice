@@ -13,6 +13,10 @@ import { PostMetrics } from './post-metrics.entity';
 import { MetricsController } from './metrics.controller';
 import { MetricsService } from './metrics.service';
 import { PublishProcessor } from './queues/publish.processor';
+import { HealthController } from './common/health.controller';
+import { GracefulShutdownService } from './common/graceful-shutdown.service';
+import { ResilientHttpService } from './common/resilient-http.service';
+import Redis from 'ioredis';
 
 @Module({
   imports: [
@@ -39,7 +43,19 @@ import { PublishProcessor } from './queues/publish.processor';
     }),
     TypeOrmModule.forFeature([PostEntity, SeriesEntity, PostMetrics]),
   ],
-  controllers: [PostController, SeriesController, MetricsController],
-  providers: [PostService, SeriesService, MetricsService, PublishProcessor],
+  controllers: [PostController, SeriesController, MetricsController, HealthController],
+  providers: [
+    PostService, SeriesService, MetricsService, PublishProcessor,
+    GracefulShutdownService, ResilientHttpService,
+    {
+      provide: 'HEALTH_REDIS',
+      useFactory: () => new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        lazyConnect: true,
+      }),
+    },
+  ],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

@@ -9,6 +9,9 @@ import { Message } from './chat/message.entity.js';
 import { TicketsModule } from './tickets/tickets.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { HealthController } from './common/health.controller.js';
+import { GracefulShutdownService } from './common/graceful-shutdown.service.js';
+import { ResilientHttpService } from './common/resilient-http.service.js';
 
 @Module({
   imports: [
@@ -29,5 +32,8 @@ import { AdminModule } from './admin/admin.module.js';
     ChatModule,
     AdminModule,
   ],
+  controllers: [HealthController],
+  providers: [GracefulShutdownService, ResilientHttpService],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

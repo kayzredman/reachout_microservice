@@ -3,6 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PlannerModule } from './planner/planner.module';
+import { HealthController } from './common/health.controller';
+import { GracefulShutdownService } from './common/graceful-shutdown.service';
+import { ResilientHttpService } from './common/resilient-http.service';
 import { join } from 'path';
 
 @Module({
@@ -10,7 +13,8 @@ import { join } from 'path';
     ConfigModule.forRoot({ envFilePath: join(__dirname, '..', '.env') }),
     PlannerModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, HealthController],
+  providers: [AppService, GracefulShutdownService, ResilientHttpService],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

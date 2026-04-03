@@ -68,6 +68,12 @@ services:
       db: { condition: service_healthy }
     ports:
       - "3002:3002"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3002
       DB_HOST: db
@@ -86,6 +92,12 @@ services:
       redis: { condition: service_healthy }
     ports:
       - "3003:3003"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3003
       DB_HOST: db
@@ -106,6 +118,12 @@ services:
       redis: { condition: service_healthy }
     ports:
       - "3004:3004"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3004
       DB_HOST: db
@@ -145,6 +163,12 @@ services:
     restart: unless-stopped
     ports:
       - "3006:3006"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3006
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -158,6 +182,12 @@ services:
       db: { condition: service_healthy }
     ports:
       - "3007:3007"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3007
       DB_HOST: db
@@ -178,6 +208,12 @@ services:
       db: { condition: service_healthy }
     ports:
       - "3008:3008"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3008/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3008
       DB_HOST: db
@@ -195,6 +231,12 @@ services:
       redis: { condition: service_healthy }
     ports:
       - "3009:3009"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3009/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     volumes:
       - wa-sessions:/app/.wa-sessions
     environment:
@@ -223,6 +265,12 @@ services:
       redis: { condition: service_healthy }
     ports:
       - "3010:3010"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3010/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3010
       DB_HOST: db
@@ -241,6 +289,12 @@ services:
       db: { condition: service_healthy }
     ports:
       - "3011:3011"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3011/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3011
       DB_HOST: db
@@ -262,6 +316,12 @@ services:
       db: { condition: service_healthy }
     ports:
       - "3012:3012"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3012/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     environment:
       PORT: 3012
       DB_HOST: db

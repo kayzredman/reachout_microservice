@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { User } from './user.entity';
+import { HealthController } from './common/health.controller';
+import { GracefulShutdownService } from './common/graceful-shutdown.service';
+import { ResilientHttpService } from './common/resilient-http.service';
 import { join } from 'path';
 
 @Module({
@@ -23,7 +26,8 @@ import { join } from 'path';
     }),
     TypeOrmModule.forFeature([User]),
   ],
-  controllers: [UserController],
-  providers: [UserService],
+  controllers: [UserController, HealthController],
+  providers: [UserService, GracefulShutdownService, ResilientHttpService],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

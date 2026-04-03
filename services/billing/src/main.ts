@@ -1,9 +1,15 @@
 import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.enableShutdownHooks();
   app.enableCors({ origin: '*' });
-  await app.listen(process.env.PORT ?? 3008);
+  const port = process.env.PORT ?? 3008;
+  await app.listen(port);
+  new Logger('Bootstrap').log(`Billing service running on port ${port}`);
 }
 bootstrap();

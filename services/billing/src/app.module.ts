@@ -5,6 +5,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { Subscription } from './subscription/subscription.entity';
+import { HealthController } from './common/health.controller';
+import { GracefulShutdownService } from './common/graceful-shutdown.service';
+import { ResilientHttpService } from './common/resilient-http.service';
 
 @Module({
   imports: [
@@ -23,7 +26,8 @@ import { Subscription } from './subscription/subscription.entity';
     }),
     SubscriptionModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, HealthController],
+  providers: [AppService, GracefulShutdownService, ResilientHttpService],
+  exports: [ResilientHttpService],
 })
 export class AppModule {}

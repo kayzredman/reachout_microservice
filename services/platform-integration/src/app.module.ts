@@ -10,6 +10,10 @@ import { BroadcastRecipient } from './broadcast-recipient.entity.js';
 import { WhatsAppSessionService } from './whatsapp-session.service.js';
 import { BroadcastService } from './broadcast.service.js';
 import { BroadcastProcessor } from './queues/broadcast.processor.js';
+import { HealthController } from './common/health.controller.js';
+import { GracefulShutdownService } from './common/graceful-shutdown.service.js';
+import { ResilientHttpService } from './common/resilient-http.service.js';
+import Redis from 'ioredis';
 
 @Module({
   imports: [
@@ -35,8 +39,20 @@ import { BroadcastProcessor } from './queues/broadcast.processor.js';
     }),
     TypeOrmModule.forFeature([PlatformConnection, BroadcastLog, BroadcastRecipient]),
   ],
-  controllers: [PlatformController],
-  providers: [PlatformService, WhatsAppSessionService, BroadcastService, BroadcastProcessor],
+  controllers: [PlatformController, HealthController],
+  providers: [
+    PlatformService, WhatsAppSessionService, BroadcastService, BroadcastProcessor,
+    GracefulShutdownService, ResilientHttpService,
+    {
+      provide: 'HEALTH_REDIS',
+      useFactory: () => new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        lazyConnect: true,
+      }),
+    },
+  ],
+  exports: [ResilientHttpService],
 })
 export class AppModule implements OnModuleInit {
   constructor(private sessionService: WhatsAppSessionService) {}
