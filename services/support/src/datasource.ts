@@ -13,5 +13,6 @@ export default new DataSource({
   database: process.env.DB_NAME || 'faithreach_support',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [Ticket, Conversation, Message],
+  migrationsTableName: 'typeorm_migrations_support',
   migrations: ['src/migrations/*{.ts,.js}'],
 });

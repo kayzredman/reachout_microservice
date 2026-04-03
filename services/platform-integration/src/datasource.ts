@@ -16,5 +16,6 @@ export default new DataSource({
   database: process.env.DB_NAME || 'faithreach_platform',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [PlatformConnection, BroadcastLog, BroadcastRecipient],
+  migrationsTableName: 'typeorm_migrations_platform',
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
 });

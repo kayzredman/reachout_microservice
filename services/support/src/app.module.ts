@@ -27,6 +27,7 @@ import { ResilientHttpService } from './common/resilient-http.service.js';
       entities: [Ticket, TicketMessage, Conversation, Message],
       synchronize: false,
       migrationsRun: true,
+      migrationsTableName: 'typeorm_migrations_support',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     TicketsModule,

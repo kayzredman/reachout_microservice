@@ -16,5 +16,6 @@ export default new DataSource({
   database: process.env.DB_NAME || 'faithreach_post',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [PostEntity, SeriesEntity, PostMetrics],
+  migrationsTableName: 'typeorm_migrations_post',
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
 });

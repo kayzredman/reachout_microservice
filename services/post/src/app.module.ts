@@ -40,6 +40,7 @@ import Redis from 'ioredis';
       entities: [PostEntity, SeriesEntity, PostMetrics],
       synchronize: false,
       migrationsRun: true,
+      migrationsTableName: 'typeorm_migrations_post',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     TypeOrmModule.forFeature([PostEntity, SeriesEntity, PostMetrics]),

@@ -23,6 +23,7 @@ import { ResilientHttpService } from './common/resilient-http.service';
       entities: [Subscription],
       synchronize: false,
       migrationsRun: true,
+      migrationsTableName: 'typeorm_migrations_billing',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     SubscriptionModule,

@@ -23,6 +23,7 @@ import { join } from 'path';
       entities: [User],
       synchronize: false,
       migrationsRun: true,
+      migrationsTableName: 'typeorm_migrations_user',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     TypeOrmModule.forFeature([User]),

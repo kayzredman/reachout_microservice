@@ -35,6 +35,7 @@ import Redis from 'ioredis';
       entities: [NotificationPrefs],
       synchronize: false,
       migrationsRun: true,
+      migrationsTableName: 'typeorm_migrations_notification',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     NotificationPrefsModule,

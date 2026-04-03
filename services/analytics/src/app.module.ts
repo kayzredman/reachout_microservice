@@ -18,7 +18,7 @@ import { join } from 'path';
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
-      database: 'faithreach_post',
+      database: process.env.DB_NAME || 'faithreach_post',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       entities: [PostEntity, PostMetrics],
       synchronize: false, // read-only: post service owns the schema

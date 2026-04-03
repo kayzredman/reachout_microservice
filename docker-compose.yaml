@@ -80,7 +80,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_user
+      DB_NAME: ${DB_NAME:-faithreach_user}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       FRONTEND_URL: http://localhost:3000
 
@@ -105,7 +105,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_post
+      DB_NAME: ${DB_NAME:-faithreach_post}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       PLATFORM_SERVICE_URL: http://platform-integration:3009
       REDIS_HOST: redis
@@ -132,7 +132,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_notification
+      DB_NAME: ${DB_NAME:-faithreach_notification}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       REDIS_HOST: redis
       FRONTEND_URL: http://localhost:3000
@@ -157,7 +157,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_post
+      DB_NAME: ${DB_NAME:-faithreach_post}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       FRONTEND_URL: http://localhost:3000
 
@@ -198,7 +198,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_planner
+      DB_NAME: ${DB_NAME:-faithreach_planner}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       POST_SERVICE_URL: http://post:3003
       BILLING_SERVICE_URL: http://billing:3008
@@ -225,7 +225,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_billing
+      DB_NAME: ${DB_NAME:-faithreach_billing}
       FRONTEND_URL: http://localhost:3000
 
   platform-integration:
@@ -251,7 +251,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_platform
+      DB_NAME: ${DB_NAME:-faithreach_platform}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       TWITTER_CLIENT_ID: ${TWITTER_CLIENT_ID}
       TWITTER_CLIENT_SECRET: ${TWITTER_CLIENT_SECRET}
@@ -309,7 +309,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_payment
+      DB_NAME: ${DB_NAME:-faithreach_payment}
       BILLING_SERVICE_URL: http://billing:3008
       PAYMENT_PROVIDER: flutterwave
       FLW_PUBLIC_KEY: ${FLW_PUBLIC_KEY}
@@ -337,7 +337,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_SSL: ${DB_SSL:-false}
-      DB_NAME: faithreach_support
+      DB_NAME: ${DB_NAME:-faithreach_support}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       USER_SERVICE_URL: http://user:3002
       POST_SERVICE_URL: http://post:3003

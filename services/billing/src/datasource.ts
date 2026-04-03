@@ -14,5 +14,6 @@ export default new DataSource({
   database: process.env.DB_NAME || 'faithreach_billing',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [Subscription],
+  migrationsTableName: 'typeorm_migrations_billing',
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
 });

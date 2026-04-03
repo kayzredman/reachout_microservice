@@ -36,6 +36,7 @@ import Redis from 'ioredis';
       entities: [PlatformConnection, BroadcastLog, BroadcastRecipient],
       synchronize: false,
       migrationsRun: true,
+      migrationsTableName: 'typeorm_migrations_platform',
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     TypeOrmModule.forFeature([PlatformConnection, BroadcastLog, BroadcastRecipient]),

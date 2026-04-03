@@ -14,5 +14,6 @@ export default new DataSource({
   database: process.env.DB_NAME || 'faithreach_notification',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [NotificationPrefs],
+  migrationsTableName: 'typeorm_migrations_notification',
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
 });
